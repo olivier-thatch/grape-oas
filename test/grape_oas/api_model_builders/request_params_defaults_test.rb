@@ -36,8 +36,8 @@ module GrapeOAS
         refute_nil disabled_param
         assert_equal "boolean", enabled_param.schema.type
         assert_equal "boolean", disabled_param.schema.type
-        assert_equal false, enabled_param.schema.default
-        assert_equal true, disabled_param.schema.default
+        assert_equal false, enabled_param.schema.default # rubocop:disable Minitest/RefuteFalse
+        assert_equal true, disabled_param.schema.default # rubocop:disable Minitest/AssertTruthy
       end
 
       # === Integer zero default ===

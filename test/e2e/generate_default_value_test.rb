@@ -60,7 +60,7 @@ module GrapeOAS
 
       # false is a valid default — it must be present (not absent/nil)
       assert enabled_param.key?("default"), "expected 'default' key to be present"
-      assert_equal false, enabled_param["default"]
+      assert_equal false, enabled_param["default"] # rubocop:disable Minitest/RefuteFalse
     end
 
     def test_oas2_param_with_default_and_enum_exports_both
@@ -137,7 +137,7 @@ module GrapeOAS
 
       # false is a valid default — it must be present (not absent/nil)
       assert enabled_param["schema"].key?("default"), "expected 'default' key to be present in schema"
-      assert_equal false, enabled_param["schema"]["default"]
+      assert_equal false, enabled_param["schema"]["default"] # rubocop:disable Minitest/RefuteFalse
     end
 
     def test_oas3_param_with_default_and_enum_exports_both

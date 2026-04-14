@@ -486,7 +486,7 @@ module GrapeOAS
         enabled_param = result.find { |p| p["name"] == "enabled" }
 
         assert enabled_param.key?("default"), "expected 'default' key to be present"
-        assert_equal false, enabled_param["default"]
+        assert_equal false, enabled_param["default"] # rubocop:disable Minitest/RefuteFalse
       end
 
       def test_parameter_without_default_does_not_emit_default_key

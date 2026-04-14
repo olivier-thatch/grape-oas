@@ -69,7 +69,7 @@ module GrapeOAS
         result = OAS3::Schema.new(schema).build
 
         assert result.key?("default"), "expected 'default' key to be present"
-        assert_equal false, result["default"]
+        assert_equal false, result["default"] # rubocop:disable Minitest/RefuteFalse
       end
 
       def test_schema_without_default_does_not_emit_default_key
