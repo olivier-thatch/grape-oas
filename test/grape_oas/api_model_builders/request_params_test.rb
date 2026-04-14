@@ -373,6 +373,33 @@ module GrapeOAS
         assert_equal "integer", ids.items.type
       end
 
+      def test_typed_array_with_is_array_does_not_double_wrap
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            optional :tags, type: [String], documentation: { is_array: true, param_type: "body" }
+            optional :counts, type: [Integer], documentation: { is_array: true, param_type: "body" }
+          end
+          post "batch" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, _params = builder.build
+
+        tags = body_schema.properties["tags"]
+
+        assert_equal "array", tags.type
+        assert_equal "string", tags.items.type
+
+        counts = body_schema.properties["counts"]
+
+        assert_equal "array", counts.type
+        assert_equal "integer", counts.items.type
+      end
+
       def test_hash_type_parameter
         api_class = Class.new(Grape::API) do
           format :json

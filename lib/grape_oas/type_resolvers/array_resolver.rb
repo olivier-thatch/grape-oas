@@ -20,15 +20,13 @@ module GrapeOAS
     class ArrayResolver
       extend Base
 
-      # Pattern to match Grape's array notation: "[Type]" or "[Module::Type]"
-      # Intentionally narrow: avoid treating multi-type strings like "[String, Integer]" as arrays.
-      ARRAY_PATTERN = /\A\[(?<inner>(?:::)?[A-Z]\w*(?:::[A-Z]\w*)*)\]\z/
+      TYPED_ARRAY_PATTERN = Constants::TypePatterns::TYPED_ARRAY
 
       class << self
         def handles?(type)
           return false unless type.is_a?(String)
 
-          type.match?(ARRAY_PATTERN)
+          type.match?(TYPED_ARRAY_PATTERN)
         end
 
         def build_schema(type)
@@ -53,7 +51,7 @@ module GrapeOAS
         private
 
         def extract_inner_type(type)
-          match = type.match(ARRAY_PATTERN)
+          match = type.match(TYPED_ARRAY_PATTERN)
           match[:inner] if match
         end
 

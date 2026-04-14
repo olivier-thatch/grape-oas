@@ -33,6 +33,10 @@ module GrapeOAS
 
           return build_entity_array_schema(spec, raw_type, doc_type) if entity_array_type?(type_source, doc_type, spec)
           return build_doc_entity_array_schema(doc_type) if doc[:is_array] && grape_entity?(doc_type)
+
+          # is_array: true on a typed array like "[String]" is redundant and would
+          # double-wrap it as Array<Array<...>> via build_primitive_array_schema.
+          return GrapeOAS.type_resolvers.build_schema(raw_type) if doc[:is_array] && extract_typed_array_member(raw_type)
           return build_primitive_array_schema(doc_type, raw_type) if doc[:is_array]
           return build_entity_schema(doc_type) if grape_entity?(doc_type)
           return build_entity_schema(raw_type) if grape_entity?(raw_type)
