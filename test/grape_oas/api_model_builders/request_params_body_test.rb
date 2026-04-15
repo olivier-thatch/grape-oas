@@ -193,6 +193,145 @@ module GrapeOAS
         assert_includes body_schema.properties.keys, "data"
       end
 
+      # === Flat params default location by HTTP method ===
+
+      def test_post_flat_params_default_to_body
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            requires :name, type: String
+            requires :email, type: String
+          end
+          post "users" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, params = builder.build
+
+        assert_includes body_schema.properties.keys, "name"
+        assert_includes body_schema.properties.keys, "email"
+        assert_empty params, "Flat params in POST should go to body by default, not query"
+      end
+
+      def test_put_flat_params_default_to_body
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            requires :id, type: Integer
+            requires :title, type: String
+            optional :body, type: String
+          end
+          put "articles/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, params = builder.build
+
+        assert_includes body_schema.properties.keys, "title"
+        assert_includes body_schema.properties.keys, "body"
+
+        id_param = params.find { |p| p.name == "id" }
+
+        assert_equal "path", id_param.location, "Path params are always path regardless of HTTP method"
+      end
+
+      def test_patch_flat_params_default_to_body
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            requires :id, type: Integer
+            optional :status, type: String
+          end
+          patch "orders/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, params = builder.build
+
+        assert_includes body_schema.properties.keys, "status"
+
+        id_param = params.find { |p| p.name == "id" }
+
+        assert_equal "path", id_param.location, "Path params are always path regardless of HTTP method"
+      end
+
+      def test_get_flat_params_default_to_query
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            optional :filter, type: String
+            optional :page, type: Integer
+          end
+          get "items" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, params = builder.build
+
+        filter_param = params.find { |p| p.name == "filter" }
+        page_param = params.find { |p| p.name == "page" }
+
+        assert_equal "query", filter_param.location
+        assert_equal "query", page_param.location
+        assert_empty body_schema.properties, "GET flat params should stay as query, not go to body"
+      end
+
+      def test_delete_flat_params_default_to_query
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            optional :permanent, type: Grape::API::Boolean
+          end
+          delete "items/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, params = builder.build
+
+        permanent_param = params.find { |p| p.name == "permanent" }
+
+        assert_equal "query", permanent_param.location
+        assert_empty body_schema.properties, "DELETE flat params should stay as query, not go to body"
+      end
+
+      def test_post_explicit_query_param_overrides_body_default
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            requires :name, type: String
+            optional :dry_run, type: Grape::API::Boolean, documentation: { param_type: "query" }
+          end
+          post "users" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        body_schema, params = builder.build
+
+        assert_includes body_schema.properties.keys, "name"
+
+        dry_run_param = params.find { |p| p.name == "dry_run" }
+
+        assert_equal "query", dry_run_param.location, "Explicit param_type: 'query' should override POST body default"
+      end
+
       # === Mixed params with nested structures ===
 
       def test_mixed_query_and_body_with_nested
