@@ -512,13 +512,10 @@ module GrapeOAS
 
         route = api_class.routes.first
         builder = RequestParams.new(api: @api, route: route)
-        _body_schema, params = builder.build
+        body_schema, _params = builder.build
 
-        username_param = params.find { |p| p.name == "username" }
-        description_param = params.find { |p| p.name == "description" }
-
-        refute_nil username_param
-        refute_nil description_param
+        assert_includes body_schema.properties.keys, "username"
+        assert_includes body_schema.properties.keys, "description"
       end
 
       # === Pattern constraint ===
@@ -536,11 +533,9 @@ module GrapeOAS
 
         route = api_class.routes.first
         builder = RequestParams.new(api: @api, route: route)
-        _body_schema, params = builder.build
+        body_schema, _params = builder.build
 
-        email_param = params.find { |p| p.name == "email" }
-
-        refute_nil email_param
+        assert_includes body_schema.properties.keys, "email"
       end
     end
   end

@@ -81,7 +81,12 @@ module GrapeOAS
 
             # Support both param_type and in for grape-swagger compatibility
             # param_type takes precedence over in when both are specified
-            (param_type || in_location)&.to_s&.downcase || "query"
+            explicit_location = (param_type || in_location)&.to_s&.downcase
+            return explicit_location if explicit_location
+
+            # Default: body for write methods (POST/PUT/PATCH), query for read methods (GET/DELETE/HEAD)
+            http_method = route.request_method.to_s.downcase
+            Constants::HttpMethods::BODYLESS_HTTP_METHODS.include?(http_method) ? "query" : "body"
           end
         end
       end
