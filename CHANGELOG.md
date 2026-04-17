@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - [#64](https://github.com/numbata/grape-oas/pull/64): Memoize content-type and default-format resolution per generation — eliminates redundant calls that scaled with route × response count - [@JuniorJoanis](https://github.com/JuniorJoanis).
+- [#62](https://github.com/numbata/grape-oas/pull/62): Default to body params for post/put/patch routes - [@olivier-thatch](https://github.com/olivier-thatch).
 - Your contribution here
 
 ## [1.3.0] - 2026-03-27
