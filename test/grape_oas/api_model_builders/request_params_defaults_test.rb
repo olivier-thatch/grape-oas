@@ -36,6 +36,8 @@ module GrapeOAS
         refute_nil disabled_param
         assert_equal "boolean", enabled_param.schema.type
         assert_equal "boolean", disabled_param.schema.type
+        assert_equal false, enabled_param.schema.default # rubocop:disable Minitest/RefuteFalse
+        assert_equal true, disabled_param.schema.default # rubocop:disable Minitest/AssertTruthy
       end
 
       # === Integer zero default ===
@@ -60,6 +62,7 @@ module GrapeOAS
 
         refute_nil count_param
         assert_equal "integer", count_param.schema.type
+        assert_equal 0, count_param.schema.default
       end
 
       # === String empty default ===
@@ -85,6 +88,8 @@ module GrapeOAS
 
         refute_nil prefix_param
         refute_nil suffix_param
+        assert_equal "", prefix_param.schema.default
+        assert_equal "default", suffix_param.schema.default
       end
 
       # === Array default ===
@@ -108,6 +113,7 @@ module GrapeOAS
 
         refute_nil tags
         assert_equal "array", tags.type
+        assert_equal %w[default], tags.default
       end
 
       # === Nil default (explicitly nil) ===
@@ -130,6 +136,7 @@ module GrapeOAS
         nullable_param = params.find { |p| p.name == "nullable_field" }
 
         refute_nil nullable_param
+        assert_nil nullable_param.schema.default
       end
 
       # === Default with enum values ===
@@ -153,6 +160,7 @@ module GrapeOAS
 
         refute_nil status_param
         assert_equal "string", status_param.schema.type
+        assert_equal "pending", status_param.schema.default
       end
 
       # === Default in nested hash ===
@@ -181,6 +189,8 @@ module GrapeOAS
         assert_equal "object", config.type
         assert_includes config.properties.keys, "timeout"
         assert_includes config.properties.keys, "retries"
+        assert_equal 30, config.properties["timeout"].default
+        assert_equal 3, config.properties["retries"].default
       end
 
       # === Documentation default vs param default ===
@@ -204,7 +214,31 @@ module GrapeOAS
         value_param = params.find { |p| p.name == "value" }
 
         refute_nil value_param
-        # Just verify parameter exists - default source depends on implementation
+        # spec[:default] takes precedence over doc[:default]
+        assert_equal "param_default", value_param.schema.default
+      end
+
+      # === Documentation-only default ===
+
+      def test_documentation_only_default_applied
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            optional :value, type: String, documentation: { default: "doc_default" }
+          end
+          get "test" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        _body_schema, params = builder.build
+
+        value_param = params.find { |p| p.name == "value" }
+
+        refute_nil value_param
+        assert_equal "doc_default", value_param.schema.default
       end
     end
   end
