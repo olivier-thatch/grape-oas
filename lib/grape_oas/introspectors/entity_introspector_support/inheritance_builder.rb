@@ -41,7 +41,7 @@ module GrapeOAS
 
           # Create allOf schema with ref to parent + child properties
           schema = ApiModel::Schema.new(
-            canonical_name: @entity_class.name,
+            canonical_name: EntityIntrospectorSupport.resolve_canonical_name(@entity_class),
             all_of: [parent_schema, child_schema],
           )
 

@@ -19,6 +19,17 @@ module GrapeOAS
         []
       end
 
+      # Resolves the canonical name for an entity class, preferring entity_name
+      # when defined and non-empty, falling back to the Ruby class name.
+      def self.resolve_canonical_name(entity_class)
+        if entity_class.respond_to?(:entity_name)
+          name = entity_class.entity_name
+          name && !name.empty? ? name : entity_class.name
+        else
+          entity_class.name
+        end
+      end
+
       # Finds the parent entity class if one exists in the Grape::Entity hierarchy.
       def self.find_parent_entity(entity_class)
         return nil unless defined?(Grape::Entity)

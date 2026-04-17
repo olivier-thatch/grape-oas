@@ -95,11 +95,7 @@ module GrapeOAS
       end
 
       def resolve_canonical_name
-        if @entity_class.respond_to?(:entity_name)
-          @entity_class.entity_name
-        else
-          @entity_class.name
-        end
+        EntityIntrospectorSupport.resolve_canonical_name(@entity_class)
       end
 
       def populate_schema(schema)
