@@ -258,6 +258,45 @@ module GrapeOAS
         assert result["items"]["allOf"], "allOf should be present on items"
       end
 
+      # === Default value tests ===
+
+      def test_schema_with_string_default_emits_default
+        schema = ApiModel::Schema.new(type: "string")
+        schema.default = "pending"
+
+        result = OAS2::Schema.new(schema).build
+
+        assert_equal "pending", result["default"]
+      end
+
+      def test_schema_with_integer_zero_default_emits_default
+        schema = ApiModel::Schema.new(type: "integer")
+        schema.default = 0
+
+        result = OAS2::Schema.new(schema).build
+
+        assert result.key?("default"), "expected 'default' key to be present"
+        assert_equal 0, result["default"]
+      end
+
+      def test_schema_with_false_default_emits_default
+        schema = ApiModel::Schema.new(type: "boolean")
+        schema.default = false
+
+        result = OAS2::Schema.new(schema).build
+
+        assert result.key?("default"), "expected 'default' key to be present"
+        assert_equal false, result["default"] # rubocop:disable Minitest/RefuteFalse
+      end
+
+      def test_schema_without_default_does_not_emit_default_key
+        schema = ApiModel::Schema.new(type: "string")
+
+        result = OAS2::Schema.new(schema).build
+
+        refute result.key?("default")
+      end
+
       # === Inline nested object with enum properties ===
 
       def test_inline_nested_object_with_enum_properties

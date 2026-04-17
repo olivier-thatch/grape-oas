@@ -82,6 +82,25 @@ module GrapeOAS
       assert_equal "user", role_param["default"]
     end
 
+    def test_oas2_body_param_with_default_exports_default
+      api_class = Class.new(Grape::API) do
+        format :json
+        params do
+          optional :name, type: String, default: "anonymous", documentation: { param_type: "body" }
+          optional :retries, type: Integer, default: 3, documentation: { param_type: "body" }
+        end
+        post "users" do
+          {}
+        end
+      end
+
+      schema = GrapeOAS.generate(app: api_class, schema_type: :oas2)
+      properties = schema["definitions"]["post_users_Request"]["properties"]
+
+      assert_equal "anonymous", properties["name"]["default"]
+      assert_equal 3, properties["retries"]["default"]
+    end
+
     # === OAS3 ===
 
     def test_oas3_string_param_with_default_exports_default
@@ -157,6 +176,25 @@ module GrapeOAS
 
       assert_equal %w[admin user guest], role_param["schema"]["enum"]
       assert_equal "user", role_param["schema"]["default"]
+    end
+
+    def test_oas3_body_param_with_default_exports_default
+      api_class = Class.new(Grape::API) do
+        format :json
+        params do
+          optional :name, type: String, default: "anonymous", documentation: { param_type: "body" }
+          optional :retries, type: Integer, default: 3, documentation: { param_type: "body" }
+        end
+        post "users" do
+          {}
+        end
+      end
+
+      schema = GrapeOAS.generate(app: api_class, schema_type: :oas3)
+      properties = schema["components"]["schemas"]["post_users_Request"]["properties"]
+
+      assert_equal "anonymous", properties["name"]["default"]
+      assert_equal 3, properties["retries"]["default"]
     end
   end
 end

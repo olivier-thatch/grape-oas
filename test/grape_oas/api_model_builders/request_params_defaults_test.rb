@@ -88,6 +88,8 @@ module GrapeOAS
 
         refute_nil prefix_param
         refute_nil suffix_param
+        assert_equal "", prefix_param.schema.default
+        assert_equal "default", suffix_param.schema.default
       end
 
       # === Array default ===
@@ -111,6 +113,7 @@ module GrapeOAS
 
         refute_nil tags
         assert_equal "array", tags.type
+        assert_equal %w[default], tags.default
       end
 
       # === Nil default (explicitly nil) ===
@@ -133,6 +136,7 @@ module GrapeOAS
         nullable_param = params.find { |p| p.name == "nullable_field" }
 
         refute_nil nullable_param
+        assert_nil nullable_param.schema.default
       end
 
       # === Default with enum values ===
@@ -185,6 +189,8 @@ module GrapeOAS
         assert_equal "object", config.type
         assert_includes config.properties.keys, "timeout"
         assert_includes config.properties.keys, "retries"
+        assert_equal 30, config.properties["timeout"].default
+        assert_equal 3, config.properties["retries"].default
       end
 
       # === Documentation default vs param default ===
@@ -208,7 +214,31 @@ module GrapeOAS
         value_param = params.find { |p| p.name == "value" }
 
         refute_nil value_param
-        # Just verify parameter exists - default source depends on implementation
+        # spec[:default] takes precedence over doc[:default]
+        assert_equal "param_default", value_param.schema.default
+      end
+
+      # === Documentation-only default ===
+
+      def test_documentation_only_default_applied
+        api_class = Class.new(Grape::API) do
+          format :json
+          params do
+            optional :value, type: String, documentation: { default: "doc_default" }
+          end
+          get "test" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = RequestParams.new(api: @api, route: route)
+        _body_schema, params = builder.build
+
+        value_param = params.find { |p| p.name == "value" }
+
+        refute_nil value_param
+        assert_equal "doc_default", value_param.schema.default
       end
     end
   end
