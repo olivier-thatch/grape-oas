@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#59](https://github.com/numbata/grape-oas/pull/59): Export `default` param values to OAS2 and OAS3 output - [@olivier-thatch](https://github.com/olivier-thatch).
 - Your contribution here
 
+### Changed
+
+- [#64](https://github.com/numbata/grape-oas/pull/64): Memoize content-type and default-format resolution per generation — eliminates redundant calls that scaled with route × response count - [@JuniorJoanis](https://github.com/JuniorJoanis).
+- Your contribution here
+
 ## [1.3.0] - 2026-03-27
 
 ### Added
