@@ -65,7 +65,7 @@ module GrapeOAS
           # Precedence (highest to lowest):
           #   1. `param_type` option (e.g., `documentation: { param_type: 'query' }`)
           #   2. `in` option (e.g., `documentation: { in: 'query' }`)
-          #   3. Falls back to "query" if neither is specified
+          #   3. Defaults to "body" for write methods (POST/PUT/PATCH), "query" for read methods
           #
           # Note: If both `param_type` and `in` are specified, `param_type` takes precedence.
           # For example, `{ param_type: 'query', in: 'body' }` will be treated as query.
