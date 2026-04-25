@@ -22,17 +22,15 @@ module GrapeOAS
           hash
         end
 
-        # OAS3.1 represents files using JSON Schema's content-* keywords
-        # rather than the OAS3.0 `format: binary` convention.
-        def normalize_file_type!(hash)
-          return unless hash["type"] == Constants::SchemaTypes::FILE
+        private
 
-          hash["type"] = Constants::SchemaTypes::STRING
+        # OAS 3.1: files use JSON Schema content-* keywords instead of
+        # the OAS 3.0 `format: binary` convention.
+        def apply_file_schema_attributes!(hash)
+          hash.delete("format")
           hash["contentMediaType"] = "application/octet-stream"
           hash["contentEncoding"] = "binary"
         end
-
-        private
 
         # Ensure examples is always an array and recurse into nested schemas
         def normalize_examples!(hash)

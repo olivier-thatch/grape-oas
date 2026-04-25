@@ -925,6 +925,58 @@ module GrapeOAS
 
         assert_equal({ "type" => "string", "format" => "binary" }, result["properties"]["avatar"])
       end
+
+      def test_nullable_file_type_array_strategy_becomes_nullable_string_with_binary_format
+        schema = ApiModel::Schema.new(type: "file", nullable: true)
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[string null], result["type"]
+        assert_equal "binary", result["format"]
+      end
+
+      def test_nullable_file_keyword_strategy_becomes_string_with_binary_format_and_nullable
+        schema = ApiModel::Schema.new(type: "file", nullable: true)
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::KEYWORD).build
+
+        assert_equal "string", result["type"]
+        assert_equal "binary", result["format"]
+        assert result["nullable"]
+      end
+
+      def test_allof_with_file_type_normalizes
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "file")
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("allOf")
+        assert_equal "string", result["type"]
+        assert_equal "binary", result["format"]
+      end
+
+      def test_oneof_with_file_type_normalizes
+        variant = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(one_of: [variant], type: "file")
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("oneOf")
+        assert_equal "string", result["type"]
+        assert_equal "binary", result["format"]
+      end
+
+      def test_anyof_with_file_type_normalizes
+        variant = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(any_of: [variant], type: "file")
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("anyOf")
+        assert_equal "string", result["type"]
+        assert_equal "binary", result["format"]
+      end
     end
   end
 end

@@ -25,15 +25,6 @@ module GrapeOAS
           schema_hash.compact
         end
 
-        # OAS3.0 does not support `type: file`. Files are represented as
-        # `type: string, format: binary`. OAS3.1 subclasses override this.
-        def normalize_file_type!(hash)
-          return unless hash["type"] == Constants::SchemaTypes::FILE
-
-          hash["type"] = Constants::SchemaTypes::STRING
-          hash["format"] = "binary"
-        end
-
         def build_base_hash
           schema_hash = {}
           schema_hash["type"] = nullable_type
@@ -91,6 +82,26 @@ module GrapeOAS
 
         private
 
+        # Rewrites `type: file` (or `type: ["file", "null"]`) to the
+        # version-appropriate representation. Type detection lives here;
+        # version-specific attributes are set by `apply_file_schema_attributes!`.
+        def normalize_file_type!(hash)
+          type = hash["type"]
+          if type == Constants::SchemaTypes::FILE
+            hash["type"] = Constants::SchemaTypes::STRING
+            apply_file_schema_attributes!(hash)
+          elsif type.is_a?(Array) && type.include?(Constants::SchemaTypes::FILE)
+            hash["type"] = type.map { |t| t == Constants::SchemaTypes::FILE ? Constants::SchemaTypes::STRING : t }
+            apply_file_schema_attributes!(hash)
+          end
+        end
+
+        # OAS 3.0: files are `type: string, format: binary`.
+        # OAS 3.1 overrides this with content-* keywords.
+        def apply_file_schema_attributes!(hash)
+          hash["format"] = "binary"
+        end
+
         # Build allOf schema for inheritance
         def build_all_of_schema
           items = @schema.all_of.map { |item| build_schema_or_ref(item) }
@@ -129,6 +140,8 @@ module GrapeOAS
           sanitize_enum_against_type(result)
           apply_all_constraints(result)
           result.merge!(@schema.extensions) if @schema.extensions
+          normalize_file_type!(result)
+          result
         end
 
         # Build OAS3 discriminator object
@@ -200,6 +213,8 @@ module GrapeOAS
               result
             end
           else
+            # self.class preserves the OAS version subclass (e.g. OAS31::Schema)
+            # so nested schemas get version-correct normalization.
             built = self.class.new(schema, @ref_tracker, nullable_strategy: @nullable_strategy).build
             strip_items_metadata(built) unless include_metadata
             built

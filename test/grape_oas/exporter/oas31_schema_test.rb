@@ -115,6 +115,86 @@ module GrapeOAS
         )
       end
 
+      def test_nullable_file_type_becomes_nullable_string_with_content_keywords
+        schema = ApiModel::Schema.new(type: "file", nullable: true)
+
+        result = OAS31::Schema.new(
+          schema, nil,
+          nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY,
+        ).build
+
+        assert_equal %w[string null], result["type"]
+        assert_equal "application/octet-stream", result["contentMediaType"]
+        assert_equal "binary", result["contentEncoding"]
+        refute result.key?("format")
+      end
+
+      def test_allof_with_file_type_normalizes_to_content_keywords
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "file")
+
+        result = OAS31::Schema.new(schema).build
+
+        assert result.key?("allOf")
+        assert_equal "string", result["type"]
+        assert_equal "application/octet-stream", result["contentMediaType"]
+        assert_equal "binary", result["contentEncoding"]
+        refute result.key?("format")
+      end
+
+      def test_allof_with_file_type_and_explicit_format_drops_format
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "file")
+        schema.format = "binary"
+
+        result = OAS31::Schema.new(schema).build
+
+        assert result.key?("allOf")
+        assert_equal "string", result["type"]
+        assert_equal "application/octet-stream", result["contentMediaType"]
+        assert_equal "binary", result["contentEncoding"]
+        refute result.key?("format"), "OAS 3.1 file normalization should remove format even when explicitly set"
+      end
+
+      def test_file_type_with_explicit_format_drops_format
+        schema = ApiModel::Schema.new(type: "file")
+        schema.format = "binary"
+
+        result = OAS31::Schema.new(schema).build
+
+        assert_equal "string", result["type"]
+        assert_equal "application/octet-stream", result["contentMediaType"]
+        assert_equal "binary", result["contentEncoding"]
+        refute result.key?("format"), "OAS 3.1 file normalization should remove format"
+      end
+
+      def test_oneof_with_file_type_normalizes_to_content_keywords
+        variant = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(one_of: [variant], type: "file")
+
+        result = OAS31::Schema.new(schema).build
+
+        assert result.key?("oneOf")
+        assert_equal "string", result["type"]
+        assert_equal "application/octet-stream", result["contentMediaType"]
+        assert_equal "binary", result["contentEncoding"]
+      end
+
+      def test_anyof_with_nullable_file_type_normalizes
+        variant = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(any_of: [variant], type: "file", nullable: true)
+
+        result = OAS31::Schema.new(
+          schema, nil,
+          nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY,
+        ).build
+
+        assert result.key?("anyOf")
+        assert_equal %w[string null], result["type"]
+        assert_equal "application/octet-stream", result["contentMediaType"]
+        assert_equal "binary", result["contentEncoding"]
+      end
+
       private
 
       def generate_doc_with_schema(schema)

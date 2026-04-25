@@ -3,8 +3,7 @@
 require "test_helper"
 
 module GrapeOAS
-  # Tests how grape-oas serializes an array-of-files parameter
-  # (`type: [File]`) across OAS 2.0, 3.0, and 3.1.
+  # Tests file-type parameter serialization across OAS 2.0, 3.0, and 3.1.
   class GenerateArrayOfFilesTest < Minitest::Test
     class SampleAPI < Grape::API
       format :json
@@ -14,6 +13,14 @@ module GrapeOAS
         requires :files, type: [File]
       end
       post "bulk_upload" do
+        {}
+      end
+
+      desc "Single upload"
+      params do
+        requires :file, type: File
+      end
+      post "upload" do
         {}
       end
     end
@@ -59,6 +66,37 @@ module GrapeOAS
         },
         files["items"],
       )
+    end
+
+    # === Standalone file parameter ===
+
+    def test_oas2_standalone_file_property
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas2)
+      body = schema.dig("paths", "/upload", "post", "parameters").find { |p| p["in"] == "body" }
+      ref = body.dig("schema", "$ref")
+      file = schema.dig(*ref.delete_prefix("#/").split("/"), "properties", "file")
+
+      assert_equal "file", file["type"]
+    end
+
+    def test_oas3_standalone_file_property
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas3)
+      ref = schema.dig("paths", "/upload", "post", "requestBody", "content", "application/json", "schema", "$ref")
+      file = schema.dig(*ref.delete_prefix("#/").split("/"), "properties", "file")
+
+      assert_equal "string", file["type"]
+      assert_equal "binary", file["format"]
+    end
+
+    def test_oas31_standalone_file_property
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas31)
+      ref = schema.dig("paths", "/upload", "post", "requestBody", "content", "application/json", "schema", "$ref")
+      file = schema.dig(*ref.delete_prefix("#/").split("/"), "properties", "file")
+
+      assert_equal "string", file["type"]
+      assert_equal "application/octet-stream", file["contentMediaType"]
+      assert_equal "binary", file["contentEncoding"]
+      refute file.key?("format")
     end
   end
 end
