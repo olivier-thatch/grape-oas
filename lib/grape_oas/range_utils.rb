@@ -39,13 +39,13 @@ module GrapeOAS
           target.minimum = coerced_min unless coerced_min.nil?
         end
 
-        if finite_numeric?(last_val)
-          coerced_max = coerce_for_json(last_val)
-          unless coerced_max.nil?
-            target.maximum = coerced_max if target.respond_to?(:maximum=)
-            target.exclusive_maximum = range.exclude_end? if target.respond_to?(:exclusive_maximum=)
-          end
-        end
+        return unless finite_numeric?(last_val)
+
+        coerced_max = coerce_for_json(last_val)
+        return if coerced_max.nil?
+
+        target.maximum = coerced_max if target.respond_to?(:maximum=)
+        target.exclusive_maximum = range.exclude_end? if target.respond_to?(:exclusive_maximum=)
       end
 
       # Returns true when all non-nil bounds are Numeric (pure numeric range).
