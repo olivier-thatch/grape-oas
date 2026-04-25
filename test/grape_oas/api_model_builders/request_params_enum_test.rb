@@ -185,7 +185,6 @@ module GrapeOAS
 
       def test_bigdecimal_range_values
         require "bigdecimal"
-        require "bigdecimal/util"
 
         api_class = Class.new(Grape::API) do
           format :json
@@ -213,8 +212,6 @@ module GrapeOAS
         assert_equal "double", discount_param.schema.format
         assert_equal "Discount rate applied to the order", discount_param.description
         assert_in_delta 0.25, discount_param.schema.examples
-        # Bounds are coerced to Float so they serialize as JSON numbers, not
-        # strings (BigDecimal#to_json emits "0.1e1" etc.).
         assert_in_delta 0.0, discount_param.schema.minimum
         assert_in_delta 1.0, discount_param.schema.maximum
         assert_kind_of Float, discount_param.schema.minimum

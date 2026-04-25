@@ -34,11 +34,18 @@ module GrapeOAS
 
         return if descending?(first_val, last_val)
 
-        target.minimum = coerce_for_json(first_val) if finite_numeric?(first_val) && target.respond_to?(:minimum=)
-        return unless finite_numeric?(last_val)
+        if finite_numeric?(first_val) && target.respond_to?(:minimum=)
+          coerced_min = coerce_for_json(first_val)
+          target.minimum = coerced_min unless coerced_min.nil?
+        end
 
-        target.maximum = coerce_for_json(last_val) if target.respond_to?(:maximum=)
-        target.exclusive_maximum = range.exclude_end? if target.respond_to?(:exclusive_maximum=)
+        if finite_numeric?(last_val)
+          coerced_max = coerce_for_json(last_val)
+          unless coerced_max.nil?
+            target.maximum = coerced_max if target.respond_to?(:maximum=)
+            target.exclusive_maximum = range.exclude_end? if target.respond_to?(:exclusive_maximum=)
+          end
+        end
       end
 
       # Returns true when all non-nil bounds are Numeric (pure numeric range).
@@ -79,11 +86,20 @@ module GrapeOAS
         val.is_a?(Numeric) && val.finite?
       end
 
-      # BigDecimal serializes to JSON as a string (e.g. "0.1e1"), violating the
-      # OpenAPI/JSON-Schema requirement that `minimum`/`maximum` be numbers.
-      # Coerce to Float so it renders as a JSON number literal.
+      # Coerce BigDecimal to Float so min/max render as JSON numbers, not strings.
+      # Returns nil when the result overflows to Infinity.
       def coerce_for_json(val)
-        defined?(BigDecimal) && val.is_a?(BigDecimal) ? val.to_f : val
+        return val unless defined?(BigDecimal) && val.is_a?(BigDecimal)
+
+        coerced = val.to_f
+        unless coerced.finite?
+          GrapeOAS.logger.warn("BigDecimal value #{val} overflows to Float::INFINITY and cannot be represented in JSON; skipping bound")
+          return nil
+        end
+        if val != BigDecimal(coerced, Float::DIG + 1)
+          GrapeOAS.logger.debug("BigDecimal value #{val} lost precision when coerced to Float #{coerced}")
+        end
+        coerced
       end
 
       def descending?(first_val, last_val)

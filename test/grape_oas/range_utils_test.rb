@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "bigdecimal"
+require "json"
 
 module GrapeOAS
   class RangeUtilsTest < Minitest::Test
@@ -265,13 +267,9 @@ module GrapeOAS
     end
 
     def test_apply_numeric_range_coerces_bigdecimal_bounds_to_float
-      require "bigdecimal"
-
       schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
       RangeUtils.apply_numeric_range(schema, BigDecimal("0.5")..BigDecimal("2.5"))
 
-      # BigDecimal#to_json emits a string like "0.5e0", which would produce
-      # invalid OpenAPI output. Bounds must be coerced to Float.
       assert_kind_of Float, schema.minimum
       assert_kind_of Float, schema.maximum
       assert_in_delta 0.5, schema.minimum
@@ -293,9 +291,6 @@ module GrapeOAS
     end
 
     def test_apply_numeric_range_bigdecimal_bounds_serialize_as_json_numbers
-      require "bigdecimal"
-      require "json"
-
       schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
       RangeUtils.apply_numeric_range(schema, BigDecimal(0)..BigDecimal(1))
 
@@ -305,6 +300,66 @@ module GrapeOAS
       assert_kind_of Numeric, payload["maximum"]
       assert_in_delta 0.0, payload["minimum"]
       assert_in_delta 1.0, payload["maximum"]
+    end
+
+    def test_apply_numeric_range_skips_bigdecimal_that_overflows_to_infinity
+      schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
+
+      log_output = capture_grape_oas_log do
+        RangeUtils.apply_numeric_range(schema, BigDecimal("1e400")..BigDecimal("2e400"))
+      end
+
+      assert_nil schema.minimum
+      assert_nil schema.maximum
+      assert_nil schema.exclusive_maximum
+      assert_match(/overflows to Float::INFINITY/, log_output)
+    end
+
+    def test_apply_numeric_range_skips_only_overflowing_bound
+      schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
+
+      log_output = capture_grape_oas_log do
+        RangeUtils.apply_numeric_range(schema, BigDecimal("1.0")..BigDecimal("1e400"))
+      end
+
+      assert_in_delta 1.0, schema.minimum
+      assert_nil schema.maximum
+      assert_nil schema.exclusive_maximum
+      assert_match(/overflows to Float::INFINITY/, log_output)
+    end
+
+    def test_apply_numeric_range_skips_overflowing_minimum_only
+      schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
+
+      log_output = capture_grape_oas_log do
+        RangeUtils.apply_numeric_range(schema, BigDecimal("-1e400")..BigDecimal("5.0"))
+      end
+
+      assert_nil schema.minimum
+      assert_in_delta 5.0, schema.maximum
+      assert_match(/overflows to Float::INFINITY/, log_output)
+    end
+
+    def test_apply_numeric_range_coerces_exclusive_bigdecimal_range
+      schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
+      RangeUtils.apply_numeric_range(schema, BigDecimal("0.5")...BigDecimal("2.5"))
+
+      assert_kind_of Float, schema.minimum
+      assert_kind_of Float, schema.maximum
+      assert_in_delta 0.5, schema.minimum
+      assert_in_delta 2.5, schema.maximum
+      assert schema.exclusive_maximum
+    end
+
+    def test_apply_numeric_range_logs_precision_loss
+      schema = ApiModel::Schema.new(type: Constants::SchemaTypes::NUMBER)
+
+      log_output = capture_grape_oas_log(level: Logger::DEBUG) do
+        RangeUtils.apply_numeric_range(schema, BigDecimal("9007199254740993")..BigDecimal("9007199254740993"))
+      end
+
+      assert_kind_of Float, schema.minimum
+      assert_match(/lost precision/, log_output)
     end
   end
 end

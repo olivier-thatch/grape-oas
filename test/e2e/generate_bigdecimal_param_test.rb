@@ -2,7 +2,6 @@
 
 require "test_helper"
 require "bigdecimal"
-require "bigdecimal/util"
 require "json"
 
 module GrapeOAS
