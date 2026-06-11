@@ -160,6 +160,24 @@ These grape-swagger options don't apply to grape-oas:
 | `servers` | OAS 3.x servers array |
 | `cache_control` | Set Cache-Control header on docs endpoint |
 | `etag` | Set ETag header on docs endpoint |
+| `grape_swagger_backwards_compat` | Match grape-swagger's operationId/schema naming (see below) |
+
+### operationId and Request Body Schema Naming
+
+By default, grape-oas generates snake_case operation ids (`post_access_requests`)
+and names the generated request body schema by appending `_Request`
+(`post_access_requests_Request`). grape-swagger uses camelCase operation ids
+(`postAccessRequests`) and names the schema after the operation id with no
+suffix. Set `grape_swagger_backwards_compat: true` to match grape-swagger:
+
+```ruby
+# operationId:              postAccessRequests
+# request body schema name: postAccessRequests
+GrapeOAS.generate(app: API, schema_type: :oas3,
+                  grape_swagger_backwards_compat: true)
+```
+
+An explicit `nickname:` still overrides the generated operation id in both modes.
 
 ---
 

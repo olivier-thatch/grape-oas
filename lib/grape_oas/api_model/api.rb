@@ -12,7 +12,8 @@ module GrapeOAS
       attr_accessor :title, :version, :paths, :servers, :tag_defs, :components,
                     :host, :base_path, :schemes, :security_definitions, :security,
                     :registered_schemas, :suppress_default_error_response, :nullable_strategy,
-                    :array_use_braces
+                    :array_use_braces,
+                    :grape_swagger_backwards_compat
 
       def initialize(title:, version:)
         super()
@@ -31,6 +32,7 @@ module GrapeOAS
         @suppress_default_error_response = false
         @nullable_strategy = nil
         @array_use_braces = false
+        @grape_swagger_backwards_compat = false
       end
 
       def add_path(path)

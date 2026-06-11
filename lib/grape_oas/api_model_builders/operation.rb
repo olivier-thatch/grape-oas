@@ -52,8 +52,18 @@ module GrapeOAS
                  .gsub(/[^a-z0-9]+/i, "_").squeeze("_")
                  .sub(/^_|_$/, "")
 
-          "#{http_method}_#{slug}"
+          id = "#{http_method}_#{slug}"
+          api.grape_swagger_backwards_compat ? camelize_operation_id(id) : id
         end
+      end
+
+      # Convert a snake_case operation id (e.g. "post_access_requests") to
+      # camelCase (e.g. "postAccessRequests") for grape-swagger compatibility.
+      def camelize_operation_id(id)
+        parts = id.split("_").reject(&:empty?)
+        return "" if parts.empty?
+
+        ([parts.first] + parts[1..].map(&:capitalize)).join
       end
 
       def http_method
