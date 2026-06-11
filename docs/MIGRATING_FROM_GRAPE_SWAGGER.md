@@ -162,17 +162,19 @@ These grape-swagger options don't apply to grape-oas:
 | `etag` | Set ETag header on docs endpoint |
 | `grape_swagger_backwards_compat` | Match grape-swagger's operationId/schema naming (see below) |
 
-### operationId and Request Body Schema Naming
+### grape_swagger_backwards_compat
 
-By default, grape-oas generates snake_case operation ids (`post_access_requests`)
-and names the generated request body schema by appending `_Request`
-(`post_access_requests_Request`). grape-swagger uses camelCase operation ids
-(`postAccessRequests`) and names the schema after the operation id with no
-suffix. Set `grape_swagger_backwards_compat: true` to match grape-swagger:
+By default grape-oas differs from grape-swagger in operation/response naming.
+Set `grape_swagger_backwards_compat: true` to match grape-swagger:
+
+- Operation ids use camelCase (`postUsers`) instead of snake_case (`post_users`).
+- The request body schema is named after the operation id with no `_Request`
+  suffix (`postUsers` instead of `post_users_Request`).
+- The endpoint description (`desc "..."`) is emitted as `description` instead of
+  `summary`, and `summary` is omitted.
+- Successful (2xx) responses reuse the endpoint description instead of `"Success"`.
 
 ```ruby
-# operationId:              postAccessRequests
-# request body schema name: postAccessRequests
 GrapeOAS.generate(app: API, schema_type: :oas3,
                   grape_swagger_backwards_compat: true)
 ```

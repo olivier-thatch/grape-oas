@@ -12,7 +12,8 @@ module GrapeOAS
       attr_accessor :http_method, :operation_id, :summary, :description,
                     :deprecated, :parameters, :request_body,
                     :responses, :tag_names, :security, :extensions,
-                    :consumes, :produces, :suppress_default_error_response
+                    :consumes, :produces, :suppress_default_error_response,
+                    :grape_swagger_backwards_compat
 
       def initialize(http_method:, operation_id: nil, summary: nil, description: nil,
                      deprecated: false, parameters: [], request_body: nil,
@@ -33,6 +34,7 @@ module GrapeOAS
         @consumes      = Array(consumes)
         @produces      = Array(produces)
         @suppress_default_error_response = false
+        @grape_swagger_backwards_compat = false
       end
 
       def add_parameter(parameter)
