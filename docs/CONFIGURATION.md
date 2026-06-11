@@ -10,6 +10,7 @@ This document covers all configuration options for Grape::OAS.
 - [Security Definitions](#security-definitions)
 - [Tags](#tags)
 - [Namespace Filtering](#namespace-filtering)
+- [grape-swagger Backwards Compatibility](#grape-swagger-backwards-compatibility)
 
 ## Global Options
 
@@ -199,3 +200,44 @@ This is useful for:
 - Generating separate documentation for different API sections
 - Creating focused documentation for specific consumers
 - Reducing documentation size for large APIs
+
+## grape-swagger Backwards Compatibility
+
+Set `grape_swagger_backwards_compat: true` to make Grape::OAS match
+grape-swagger's output in a few places. When enabled:
+
+- Operation ids use camelCase (`postUsers`) instead of snake_case
+  (`post_users`). An explicit `nickname:` still takes precedence.
+- The generated request body schema is named after the operation id with no
+  `_Request` suffix (`postUsers` instead of `post_users_Request`).
+- The endpoint description (`desc "..."`) is emitted as `description` instead
+  of `summary`, and `summary` is omitted.
+- Successful (2xx) responses reuse the endpoint description instead of the
+  generic `"Success"` text.
+
+```ruby
+class API < Grape::API
+  format :json
+
+  desc "Create user"
+  params { requires :name, type: String }
+  post "users" do
+    {}
+  end
+end
+
+# Default (grape_swagger_backwards_compat: false)
+#   operationId:              post_users
+#   request body schema name: post_users_Request
+#   summary:                  "Create user"
+#   201 response description: "Success"
+GrapeOAS.generate(app: API, schema_type: :oas3)
+
+# grape_swagger_backwards_compat: true
+#   operationId:              postUsers
+#   request body schema name: postUsers
+#   description:              "Create user"   (no summary)
+#   201 response description: "Create user"
+GrapeOAS.generate(app: API, schema_type: :oas3,
+                  grape_swagger_backwards_compat: true)
+```

@@ -59,7 +59,8 @@ module GrapeOAS
           elsif body_schema.properties.values.any? { |prop| prop.respond_to?(:canonical_name) && prop.canonical_name }
             # keep entity/property refs intact; don't override
           elsif operation.respond_to?(:operation_id) && operation.operation_id
-            body_schema.canonical_name = "#{operation.operation_id}_Request"
+            suffix = api.grape_swagger_backwards_compat ? "" : "_Request"
+            body_schema.canonical_name = "#{operation.operation_id}#{suffix}"
           end
         end
 

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- [#1](https://github.com/olivier-thatch/grape-oas/pull/1): Add `grape_swagger_backwards_compat` option to match grape-swagger output — camelCase operation ids, request body schema named without the `_Request` suffix, endpoint description emitted as `description` (not `summary`), and successful responses reusing the endpoint description instead of `"Success"` - [@olivier-thatch](https://github.com/olivier-thatch).
 - [#96](https://github.com/numbata/grape-oas/pull/96): Pin rubocop versions and add performance/packaging/rake plugins - [@numbata](https://github.com/numbata).
 - [#92](https://github.com/numbata/grape-oas/pull/92): Add cross-tool AI-agent contributor guidance and tighten gem file packaging - [@numbata](https://github.com/numbata).
 - Your contribution here

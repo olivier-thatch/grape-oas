@@ -35,15 +35,19 @@ module GrapeOAS
         # Common fields present in both OAS2 and OAS3
         def build_common_fields
           summary = @op.summary
-          summary ||= @op.description&.split(/\.\s/)&.first&.strip
-          # Fallback: generate a readable summary from the operationId to satisfy lint rules
-          if summary.nil? && @op.operation_id
-            summary = @op.operation_id
-                         .to_s
-                         .tr("_", " ")
-                         .split
-                         .map(&:capitalize)
-                         .join(" ")
+          # In grape-swagger compat mode the description is intentionally not
+          # mirrored into summary, so skip the lint-oriented summary fallbacks.
+          unless @op.respond_to?(:grape_swagger_backwards_compat) && @op.grape_swagger_backwards_compat
+            summary ||= @op.description&.split(/\.\s/)&.first&.strip
+            # Fallback: generate a readable summary from the operationId to satisfy lint rules
+            if summary.nil? && @op.operation_id
+              summary = @op.operation_id
+                           .to_s
+                           .tr("_", " ")
+                           .split
+                           .map(&:capitalize)
+                           .join(" ")
+            end
           end
 
           {

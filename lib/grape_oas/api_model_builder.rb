@@ -20,6 +20,7 @@ module GrapeOAS
       @api.registered_schemas = build_registered_schemas(options[:models])
       @api.suppress_default_error_response = options[:suppress_default_error_response] || false
       @api.nullable_strategy = options[:nullable_strategy]
+      @api.grape_swagger_backwards_compat = options[:grape_swagger_backwards_compat] || false
 
       @namespace_filter = options[:namespace]
       @apis = []
