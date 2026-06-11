@@ -16,6 +16,8 @@ module GrapeOAS
         ResponseParsers::DefaultResponseParser
       ].freeze
 
+      DEFAULT_SUCCESS_DESCRIPTION = "Success"
+
       class << self
         attr_writer :parsers
 
@@ -105,12 +107,9 @@ module GrapeOAS
           build_media_type(mime_type: mime, schema: schema)
         end
 
-        message = first_spec[:message]
-        description = message.is_a?(String) ? message : message&.to_s
-
         GrapeOAS::ApiModel::Response.new(
           http_status: first_spec[:code].to_s,
-          description: description || "Success",
+          description: response_description(first_spec),
           media_types: media_types,
           headers: normalize_headers(first_spec[:headers]) || headers_from_route,
           extensions: first_spec[:extensions] || extensions_from_route,
@@ -126,12 +125,9 @@ module GrapeOAS
           build_media_type(mime_type: mime, schema: schema)
         end
 
-        message = first_spec[:message]
-        description = message.is_a?(String) ? message : message&.to_s
-
         GrapeOAS::ApiModel::Response.new(
           http_status: first_spec[:code].to_s,
-          description: description || "Success",
+          description: response_description(first_spec),
           media_types: media_types,
           headers: normalize_headers(first_spec[:headers]) || headers_from_route,
           extensions: first_spec[:extensions] || extensions_from_route,
@@ -186,17 +182,35 @@ module GrapeOAS
           )
         end
 
-        message = spec[:message]
-        description = message.is_a?(String) ? message : message&.to_s
-
         GrapeOAS::ApiModel::Response.new(
           http_status: spec[:code].to_s,
-          description: description || "Success",
+          description: response_description(spec),
           media_types: media_types,
           headers: normalize_headers(spec[:headers]) || headers_from_route,
           extensions: spec[:extensions] || extensions_from_route,
           examples: spec[:examples],
         )
+      end
+
+      # Resolve a response's description. In grape-swagger compat mode a
+      # successful (2xx) response that would otherwise fall back to the
+      # generic "Success" reuses the endpoint description instead.
+      def response_description(spec)
+        message = spec[:message]
+        description = message.is_a?(String) ? message : message&.to_s
+
+        if api.grape_swagger_backwards_compat &&
+           success_code?(spec[:code]) &&
+           (description.nil? || description == DEFAULT_SUCCESS_DESCRIPTION) &&
+           route.options[:description]
+          return route.options[:description]
+        end
+
+        description || DEFAULT_SUCCESS_DESCRIPTION
+      end
+
+      def success_code?(code)
+        code.to_s.start_with?("2")
       end
 
       def array_schema(schema)

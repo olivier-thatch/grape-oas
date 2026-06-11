@@ -20,7 +20,7 @@ module GrapeOAS
         operation = GrapeOAS::ApiModel::Operation.new(
           http_method: http_method,
           operation_id: operation_id,
-          summary: route.options[:description],
+          summary: build_summary,
           description: build_description,
           tag_names: tag_names,
           extensions: operation_extensions,
@@ -29,6 +29,7 @@ module GrapeOAS
           deprecated: build_deprecated,
         )
         operation.suppress_default_error_response = build_suppress_default_error_response
+        operation.grape_swagger_backwards_compat = api.grape_swagger_backwards_compat
 
         api.add_tags(*tag_names) if tag_names.any?
 
@@ -128,9 +129,19 @@ module GrapeOAS
           false
       end
 
+      # In grape-swagger compat mode the endpoint description (`desc "..."`)
+      # is emitted as `description`, not `summary`.
+      def build_summary
+        return nil if api.grape_swagger_backwards_compat
+
+        route.options[:description]
+      end
+
       def build_description
-        route.options[:detail] ||
-          route.options.dig(:documentation, :desc)
+        detail = route.options[:detail] || route.options.dig(:documentation, :desc)
+        return detail unless api.grape_swagger_backwards_compat
+
+        route.options[:description] || detail
       end
 
       def consumes

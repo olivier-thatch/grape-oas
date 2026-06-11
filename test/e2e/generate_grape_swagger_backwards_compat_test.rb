@@ -65,5 +65,61 @@ module GrapeOAS
 
       assert_equal "getUserById", schema.dig("paths", "/users/{id}", "get", "operationId")
     end
+
+    def test_default_assigns_description_to_summary
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas3)
+
+      op = schema.dig("paths", "/users", "post")
+
+      assert_equal "Create user", op["summary"]
+      refute op.key?("description")
+    end
+
+    def test_backwards_compat_assigns_description_not_summary
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas3,
+                                 grape_swagger_backwards_compat: true,)
+
+      op = schema.dig("paths", "/users", "post")
+
+      assert_equal "Create user", op["description"]
+      refute op.key?("summary"), "summary should not be emitted in compat mode"
+    end
+
+    def test_default_uses_success_for_response_description
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas3)
+
+      op = schema.dig("paths", "/users", "post")
+
+      assert_equal "Success", op.dig("responses", "201", "description")
+    end
+
+    def test_backwards_compat_reuses_description_for_success_response
+      schema = GrapeOAS.generate(app: SampleAPI, schema_type: :oas3,
+                                 grape_swagger_backwards_compat: true,)
+
+      op = schema.dig("paths", "/users", "post")
+
+      assert_equal "Create user", op.dig("responses", "201", "description")
+    end
+
+    def test_backwards_compat_keeps_explicit_failure_message
+      api_class = Class.new(Grape::API) do
+        format :json
+        desc "Create user" do
+          failure [[422, "Unprocessable Entity"]]
+        end
+        params { requires :name, type: String }
+        post "users" do
+          {}
+        end
+      end
+
+      schema = GrapeOAS.generate(app: api_class, schema_type: :oas3,
+                                 grape_swagger_backwards_compat: true,)
+
+      op = schema.dig("paths", "/users", "post")
+
+      assert_equal "Unprocessable Entity", op.dig("responses", "422", "description")
+    end
   end
 end
