@@ -160,6 +160,10 @@ module GrapeOAS
 
           array_schema = ApiModel::Schema.new(type: Constants::SchemaTypes::ARRAY, items: prop_schema)
           hoist_array_example(array_schema, prop_schema)
+          # nullable describes the array itself, not its elements: a nullable
+          # array may be null, but its items remain non-null.
+          array_schema.nullable = prop_schema.nullable
+          prop_schema.nullable = false
           array_schema
         end
 
@@ -171,6 +175,7 @@ module GrapeOAS
 
           array_schema.examples = item_schema.examples
           item_schema.examples = nil
+          array_schema
         end
 
         # Detects block-based nesting exposures (NestingExposure) that should become
