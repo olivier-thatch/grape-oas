@@ -10,6 +10,7 @@ This document covers all configuration options for Grape::OAS.
 - [Security Definitions](#security-definitions)
 - [Tags](#tags)
 - [Namespace Filtering](#namespace-filtering)
+- [grape-swagger Backwards Compatibility](#grape-swagger-backwards-compatibility)
 
 ## Global Options
 
@@ -199,3 +200,27 @@ This is useful for:
 - Generating separate documentation for different API sections
 - Creating focused documentation for specific consumers
 - Reducing documentation size for large APIs
+
+## grape-swagger Backwards Compatibility
+
+`grape-swagger` names operations in camelCase and names the generated request
+body schema after the operation id without any suffix. By default, Grape::OAS
+uses snake_case operation ids and appends `_Request` to the request body schema
+name. Set `grape_swagger_backwards_compat: true` to match grape-swagger's
+naming.
+
+```ruby
+# Default (grape_swagger_backwards_compat: false)
+#   operationId:              post_access_requests
+#   request body schema name: post_access_requests_Request
+GrapeOAS.generate(app: API, schema_type: :oas3)
+
+# grape_swagger_backwards_compat: true
+#   operationId:              postAccessRequests
+#   request body schema name: postAccessRequests
+GrapeOAS.generate(app: API, schema_type: :oas3,
+                  grape_swagger_backwards_compat: true)
+```
+
+An explicit `nickname:` on the route still takes precedence over the generated
+operation id in both modes.
