@@ -102,6 +102,12 @@ module GrapeOAS
         end
       end
 
+      class ArrayExampleNestingEntity < Grape::Entity
+        expose :items, documentation: { is_array: true, example: [{ "id" => 1 }, { "id" => 2 }] } do
+          expose :id, documentation: { type: Integer }
+        end
+      end
+
       def test_nesting_exposure_with_array_wrapper
         schema = EntityIntrospector.new(ArrayNestingEntity).build_schema
 
@@ -112,6 +118,14 @@ module GrapeOAS
         assert_includes items.items.properties.keys, "id"
         assert_includes items.items.properties.keys, "status"
         assert_equal %w[active inactive], items.items.properties["status"].enum
+      end
+
+      def test_nesting_exposure_array_example_is_placed_on_array_wrapper
+        schema = EntityIntrospector.new(ArrayExampleNestingEntity).build_schema
+        items = schema.properties["items"]
+
+        assert_equal [{ "id" => 1 }, { "id" => 2 }], items.examples
+        assert_nil items.items.examples
       end
 
       # === Mixed: nesting exposure with using: entity child ===
