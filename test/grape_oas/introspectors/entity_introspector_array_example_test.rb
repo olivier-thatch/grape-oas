@@ -36,6 +36,10 @@ module GrapeOAS
         expose :label, documentation: { type: "string", is_array: true, example: "cat" }
       end
 
+      class NoExampleEntity < Grape::Entity
+        expose :tags, documentation: { type: "string", is_array: true }
+      end
+
       def test_scalar_example_on_is_array_exposure_stays_on_items
         schema = EntityIntrospector.new(ScalarExampleOnArrayEntity).build_schema
         label = schema.properties["label"]
@@ -43,6 +47,15 @@ module GrapeOAS
         assert_equal Constants::SchemaTypes::ARRAY, label.type
         assert_nil label.examples
         assert_equal "cat", label.items.examples
+      end
+
+      def test_is_array_exposure_without_example_produces_no_examples
+        schema = EntityIntrospector.new(NoExampleEntity).build_schema
+        tags = schema.properties["tags"]
+
+        assert_equal Constants::SchemaTypes::ARRAY, tags.type
+        assert_nil tags.examples
+        assert_nil tags.items.examples
       end
     end
   end

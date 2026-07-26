@@ -159,18 +159,11 @@ module GrapeOAS
           return prop_schema unless is_array
 
           array_schema = ApiModel::Schema.new(type: Constants::SchemaTypes::ARRAY, items: prop_schema)
-          hoist_array_example(array_schema, prop_schema)
+          if doc[:example].is_a?(Array)
+            array_schema.examples = doc[:example]
+            prop_schema.examples = nil
+          end
           array_schema
-        end
-
-        # An array-valued example describes the whole array, not one element, so move
-        # it from the item schema to the array wrapper. Scalar examples stay on the
-        # item schema, where they are a valid example for a single element.
-        def hoist_array_example(array_schema, item_schema)
-          return unless item_schema.respond_to?(:examples) && item_schema.examples.is_a?(Array)
-
-          array_schema.examples = item_schema.examples
-          item_schema.examples = nil
         end
 
         # Detects block-based nesting exposures (NestingExposure) that should become
