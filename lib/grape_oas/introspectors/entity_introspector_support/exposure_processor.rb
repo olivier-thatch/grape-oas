@@ -159,10 +159,7 @@ module GrapeOAS
           return prop_schema unless is_array
 
           array_schema = ApiModel::Schema.new(type: Constants::SchemaTypes::ARRAY, items: prop_schema)
-          if doc[:example].is_a?(Array)
-            array_schema.examples = doc[:example]
-            prop_schema.examples = nil
-          end
+          array_schema.examples = doc[:example] if array_valued_example?(doc)
           array_schema
         end
 
@@ -231,7 +228,7 @@ module GrapeOAS
           end
           schema.description = doc[:desc] if doc[:desc]
           schema.format = doc[:format] if doc[:format]
-          schema.examples = doc[:example] if schema.respond_to?(:examples=) && doc[:example]
+          schema = apply_example_to_schema(schema, doc[:example]) if doc[:example] && !array_valued_example?(doc)
           schema.additional_properties = doc[:additional_properties] if doc.key?(:additional_properties)
           schema.unevaluated_properties = doc[:unevaluated_properties] if doc.key?(:unevaluated_properties)
           defs = doc[:defs] || doc[:$defs]
@@ -275,6 +272,21 @@ module GrapeOAS
             schema.enum = values
           end
           schema
+        end
+
+        def apply_example_to_schema(schema, example)
+          return schema unless schema.respond_to?(:examples=)
+
+          if schema.respond_to?(:canonical_name) && schema.canonical_name
+            schema = schema.dup
+            schema.canonical_name = nil
+          end
+          schema.examples = example
+          schema
+        end
+
+        def array_valued_example?(doc)
+          doc[:is_array] && doc[:example].is_a?(Array)
         end
 
         def normalize_doc_keys(doc)

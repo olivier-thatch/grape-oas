@@ -26,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#85](https://github.com/numbata/grape-oas/pull/85): Honor `is_array: true` on the plain-entity response branch - [@abeljim8am](https://github.com/abeljim8am).
 - [#87](https://github.com/numbata/grape-oas/pull/87): Fix `SchemaIndexer#index_schema` to recurse into `schema.items` so entities reachable only through an array wrapper (e.g. a property declared as `Array<OtherEntity>`) are included in the indexed schemas set - [@abeljim8am](https://github.com/abeljim8am).
 - [#102](https://github.com/numbata/grape-oas/pull/102): Fix: nullable entity ref must not mutate shared cached schema - [@bogdan](https://github.com/bogdan).
-- [#105](https://github.com/numbata/grape-oas/pull/105): Place array-valued `example` on the array schema instead of `items` for entity `is_array:` exposures - [@olivier-thatch](https://github.com/olivier-thatch).
+- [#105](https://github.com/numbata/grape-oas/pull/105): Place array-valued `example` on the array schema instead of `items` for entity `is_array:` exposures without mutating shared entity schemas - [@olivier-thatch](https://github.com/olivier-thatch).
 * Your contribution here
 
 ### Changed

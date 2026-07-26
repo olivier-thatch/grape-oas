@@ -40,6 +40,20 @@ module GrapeOAS
         expose :tags, documentation: { type: "string", is_array: true }
       end
 
+      class EmptyArrayExampleEntity < Grape::Entity
+        expose :tags, documentation: { type: "string", is_array: true, example: [] }
+      end
+
+      class ReferencedEntity < Grape::Entity
+        expose :name, documentation: { type: "string" }
+      end
+
+      class SharedEntityExampleEntity < Grape::Entity
+        expose :single, using: ReferencedEntity, documentation: { example: { "name" => "Ada" } }
+        expose :list, using: ReferencedEntity,
+                      documentation: { is_array: true, example: [{ "name" => "Ada" }, { "name" => "Lin" }] }
+      end
+
       def test_scalar_example_on_is_array_exposure_stays_on_items
         schema = EntityIntrospector.new(ScalarExampleOnArrayEntity).build_schema
         label = schema.properties["label"]
@@ -56,6 +70,25 @@ module GrapeOAS
         assert_equal Constants::SchemaTypes::ARRAY, tags.type
         assert_nil tags.examples
         assert_nil tags.items.examples
+      end
+
+      def test_empty_array_example_is_placed_on_array_schema
+        schema = EntityIntrospector.new(EmptyArrayExampleEntity).build_schema
+        tags = schema.properties["tags"]
+
+        assert_equal [], tags.examples
+        assert_nil tags.items.examples
+      end
+
+      def test_array_example_does_not_mutate_shared_entity_schema
+        schema = EntityIntrospector.new(SharedEntityExampleEntity).build_schema
+        single = schema.properties["single"]
+        list = schema.properties["list"]
+
+        assert_equal({ "name" => "Ada" }, single.examples)
+        assert_equal [{ "name" => "Ada" }, { "name" => "Lin" }], list.examples
+        assert_nil list.items.examples
+        refute_same single, list.items
       end
     end
   end
