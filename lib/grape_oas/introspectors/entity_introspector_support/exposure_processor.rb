@@ -239,17 +239,24 @@ module GrapeOAS
         end
 
         # Cached entity schemas (via using:) are shared across all exposures that
-        # reference the same entity — dup before setting enum to avoid mutating
-        # the shared schema; emit a warning so users know a dup occurred.
+        # reference the same entity — dup before mutating them (enum, example, ...)
+        # to avoid corrupting the shared schema; emit a warning so users know a
+        # dup occurred.
         #
+        # @return [ApiModel::Schema] a dup of schema with canonical_name cleared
+        def dup_cached_schema(schema, reason:, value:)
+          GrapeOAS.logger.warn(
+            "Duplicating cached schema '#{schema.canonical_name}' to apply #{reason} #{value.inspect}",
+          )
+          dup = schema.dup
+          dup.canonical_name = nil
+          dup
+        end
+
         # @return [ApiModel::Schema] the schema (or a dup) with enum applied
         def apply_enum_to_schema(schema, values)
           if schema.respond_to?(:canonical_name) && schema.canonical_name
-            GrapeOAS.logger.warn(
-              "Duplicating cached schema '#{schema.canonical_name}' to apply enum #{values.inspect}",
-            )
-            schema = schema.dup
-            schema.canonical_name = nil
+            schema = dup_cached_schema(schema, reason: "enum", value: values)
             schema.enum = values
             return schema
           end
@@ -257,13 +264,9 @@ module GrapeOAS
           if schema.type == Constants::SchemaTypes::ARRAY &&
              schema.respond_to?(:items) && schema.items
             if schema.items.respond_to?(:canonical_name) && schema.items.canonical_name
-              GrapeOAS.logger.warn(
-                "Duplicating cached schema '#{schema.items.canonical_name}' to apply enum #{values.inspect}",
-              )
-              schema = schema.dup
-              items_dup = schema.items.dup
-              items_dup.canonical_name = nil
+              items_dup = dup_cached_schema(schema.items, reason: "enum", value: values)
               items_dup.enum = values
+              schema = schema.dup
               schema.items = items_dup
             else
               schema.items.enum = values
@@ -278,16 +281,14 @@ module GrapeOAS
           return schema unless schema.respond_to?(:examples=)
 
           if schema.respond_to?(:canonical_name) && schema.canonical_name
-            GrapeOAS.logger.warn(
-              "Duplicating cached schema '#{schema.canonical_name}' to apply example #{example.inspect}",
-            )
-            schema = schema.dup
-            schema.canonical_name = nil
+            schema = dup_cached_schema(schema, reason: "example", value: example)
           end
           schema.examples = example
           schema
         end
 
+        # True when doc[:example] describes the whole array (not a single item),
+        # i.e. is_array: true and the example is itself an Array.
         def array_valued_example?(doc)
           doc[:is_array] && doc[:example].is_a?(Array)
         end
