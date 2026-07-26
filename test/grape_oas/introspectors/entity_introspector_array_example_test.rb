@@ -54,6 +54,11 @@ module GrapeOAS
                       documentation: { is_array: true, example: [{ "name" => "Ada" }, { "name" => "Lin" }] }
       end
 
+      class ScalarExampleOnReferencedArrayEntity < Grape::Entity
+        expose :plain, using: ReferencedEntity
+        expose :list, using: ReferencedEntity, documentation: { is_array: true, example: { "name" => "Ada" } }
+      end
+
       def test_scalar_example_on_is_array_exposure_stays_on_items
         schema = EntityIntrospector.new(ScalarExampleOnArrayEntity).build_schema
         label = schema.properties["label"]
@@ -89,6 +94,21 @@ module GrapeOAS
         assert_equal [{ "name" => "Ada" }, { "name" => "Lin" }], list.examples
         assert_nil list.items.examples
         refute_same single, list.items
+      end
+
+      def test_scalar_example_on_array_of_shared_entity_does_not_mutate_other_exposure
+        schema = nil
+        log = capture_grape_oas_log do
+          schema = EntityIntrospector.new(ScalarExampleOnReferencedArrayEntity).build_schema
+        end
+        plain = schema.properties["plain"]
+        list = schema.properties["list"]
+
+        assert_nil plain.examples
+        assert_nil list.examples
+        assert_equal({ "name" => "Ada" }, list.items.examples)
+        refute_same plain, list.items
+        assert_match(/Duplicating cached schema/, log)
       end
     end
   end

@@ -278,6 +278,9 @@ module GrapeOAS
           return schema unless schema.respond_to?(:examples=)
 
           if schema.respond_to?(:canonical_name) && schema.canonical_name
+            GrapeOAS.logger.warn(
+              "Duplicating cached schema '#{schema.canonical_name}' to apply example #{example.inspect}",
+            )
             schema = schema.dup
             schema.canonical_name = nil
           end
