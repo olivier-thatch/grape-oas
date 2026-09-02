@@ -84,16 +84,14 @@ module GrapeOAS
         def normalize_enum(enum_vals, type)
           return nil unless enum_vals.is_a?(Array)
 
-          # rubocop:disable Performance/MapCompact -- filter_map drops `false` for boolean enums
-          coerced = enum_vals.map do |v|
+          # filter_map drops `false` for boolean enums
+          coerced = enum_vals.map do |v| # rubocop:disable Performance/MapCompact
             case type
             when Constants::SchemaTypes::INTEGER then v.to_i if v.respond_to?(:to_i)
             when Constants::SchemaTypes::NUMBER then v.to_f if v.respond_to?(:to_f)
             else v
             end
           end.compact
-          # rubocop:enable Performance/MapCompact
-
           result = coerced.uniq
           return nil if result.empty?
 
@@ -141,7 +139,7 @@ module GrapeOAS
         def build_schema_or_ref(schema)
           if schema.respond_to?(:canonical_name) && schema.canonical_name
             @ref_tracker << schema.canonical_name if @ref_tracker
-            ref_name = schema.canonical_name.gsub("::", "_")
+            ref_name = GrapeOAS.schema_ref_name.call(schema.canonical_name)
             { "$ref" => "#/definitions/#{ref_name}" }
           else
             Schema.new(schema, @ref_tracker, nullable_strategy: @nullable_strategy).build

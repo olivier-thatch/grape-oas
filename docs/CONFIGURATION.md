@@ -5,6 +5,7 @@ This document covers all configuration options for Grape::OAS.
 ## Table of Contents
 
 - [Global Options](#global-options)
+- [Schema Ref Names](#schema-ref-names)
 - [Info Object](#info-object)
 - [Nullable Strategy](#nullable-strategy)
 - [Security Definitions](#security-definitions)
@@ -42,6 +43,21 @@ add_oas_documentation(
   ]
 )
 ```
+
+## Schema Ref Names
+
+Override how a schema's canonical Ruby class name becomes an OAS component or
+definition key and its matching `$ref`. The default replaces `::` with `_`.
+
+```ruby
+GrapeOAS.schema_ref_name = ->(name) { name.split("::").last }
+
+# Reset to the default mapping
+GrapeOAS.schema_ref_name = nil
+```
+
+The callable receives the canonical class name as a string and should return a
+valid OAS component key. Configure it once during application boot.
 
 ## Info Object
 
