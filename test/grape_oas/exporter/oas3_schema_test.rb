@@ -134,6 +134,104 @@ module GrapeOAS
         assert_equal [1.5, 2.5, 3.5], result["enum"]
       end
 
+      def test_integer_enum_normalized_type_array
+        schema = ApiModel::Schema.new(type: "integer", nullable: true)
+        schema.enum = %w[1 2 3]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[integer null], result["type"]
+        assert_equal [1, 2, 3], result["enum"]
+      end
+
+      def test_number_enum_normalized_type_array
+        schema = ApiModel::Schema.new(type: "number", nullable: true)
+        schema.enum = %w[1.5 2.5]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[number null], result["type"]
+        assert_equal [1.5, 2.5], result["enum"]
+      end
+
+      def test_boolean_enum_normalized_type_array
+        schema = ApiModel::Schema.new(type: "boolean", nullable: true)
+        schema.enum = [true, false]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[boolean null], result["type"]
+        assert_equal [true, false], result["enum"]
+      end
+
+      def test_non_nullable_integer_enum_normalized_type_array
+        schema = ApiModel::Schema.new(type: "integer")
+        schema.enum = %w[1 2 3]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal "integer", result["type"]
+        assert_equal [1, 2, 3], result["enum"]
+      end
+
+      def test_nullable_integer_enum_preserves_nil_type_array
+        schema = ApiModel::Schema.new(type: "integer", nullable: true)
+        schema.enum = [1, 2, nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[integer null], result["type"]
+        assert_equal [1, 2, nil], result["enum"]
+      end
+
+      def test_sanitize_drops_incompatible_enum_for_boolean_with_nil
+        schema = ApiModel::Schema.new(type: "boolean", nullable: true)
+        schema.enum = ["yes", "no", nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        refute result.key?("enum"), "enum with non-boolean values should be dropped"
+      end
+
+      def test_null_only_type_drops_enum
+        schema = ApiModel::Schema.new(type: "null", nullable: true)
+        schema.enum = %w[a b]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[null], result["type"]
+        refute result.key?("enum"), "null-only type has no base type so enum is dropped"
+      end
+
+      def test_nullable_integer_enum_deduplicates_nils_type_array
+        schema = ApiModel::Schema.new(type: "integer", nullable: true)
+        schema.enum = [1, nil, 2, nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal [1, 2, nil], result["enum"]
+      end
+
+      def test_nullable_nil_only_enum_preserved_type_array
+        schema = ApiModel::Schema.new(type: "string", nullable: true)
+        schema.enum = [nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal [nil], result["enum"]
+      end
+
+      # === Example coercion tests ===
+
+      def test_coerce_example_with_type_array_integer
+        schema = ApiModel::Schema.new(type: "integer", nullable: true, examples: ["42"])
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[integer null], result["type"]
+        assert_equal 42, result["example"]
+      end
+
       # === nullable_strategy tests ===
 
       def test_keyword_strategy_emits_nullable_true
@@ -152,6 +250,28 @@ module GrapeOAS
 
         assert_equal "string", result["type"]
         refute result.key?("nullable")
+      end
+
+      def test_keyword_strategy_preserves_nil_in_enum
+        schema = ApiModel::Schema.new(type: "integer", nullable: true)
+        schema.enum = [1, 2, nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::KEYWORD).build
+
+        assert_equal "integer", result["type"]
+        assert result["nullable"]
+        assert_equal [1, 2, nil], result["enum"]
+      end
+
+      def test_extension_strategy_drops_nil_from_enum
+        schema = ApiModel::Schema.new(type: "integer", nullable: true)
+        schema.enum = [1, 2, nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::EXTENSION).build
+
+        assert_equal "integer", result["type"]
+        assert result["x-nullable"]
+        assert_equal [1, 2], result["enum"]
       end
 
       def test_type_array_strategy_produces_type_array_with_null
@@ -229,6 +349,71 @@ module GrapeOAS
         assert_equal "A related entity", child["description"]
         assert child["nullable"]
         refute child.key?("$ref")
+      end
+
+      def test_ref_nullable_enum_preserves_nil_keyword
+        ref_tracker = Set.new
+        ref_schema = ApiModel::Schema.new(canonical_name: "MyEntity", type: "integer", nullable: true)
+        ref_schema.enum = [1, 2, nil]
+        parent_schema = ApiModel::Schema.new(type: "object")
+        parent_schema.add_property("child", ref_schema)
+
+        result = OAS3::Schema.new(parent_schema, ref_tracker, nullable_strategy: Constants::NullableStrategy::KEYWORD).build
+
+        child = result["properties"]["child"]
+
+        assert_equal [{ "$ref" => "#/components/schemas/MyEntity" }], child["allOf"]
+        assert_equal [1, 2, nil], child["enum"]
+        assert child["nullable"]
+      end
+
+      def test_ref_nullable_enum_drops_nil_extension
+        ref_tracker = Set.new
+        ref_schema = ApiModel::Schema.new(canonical_name: "MyEntity", type: "integer", nullable: true)
+        ref_schema.enum = [1, 2, nil]
+        parent_schema = ApiModel::Schema.new(type: "object")
+        parent_schema.add_property("child", ref_schema)
+
+        result = OAS3::Schema.new(parent_schema, ref_tracker, nullable_strategy: Constants::NullableStrategy::EXTENSION).build
+
+        child = result["properties"]["child"]
+
+        assert_equal [{ "$ref" => "#/components/schemas/MyEntity" }], child["allOf"]
+        assert_equal [1, 2], child["enum"]
+        assert child["x-nullable"]
+      end
+
+      def test_ref_nullable_enum_drops_nil_type_array
+        ref_tracker = Set.new
+        ref_schema = ApiModel::Schema.new(canonical_name: "MyEntity", type: "integer", nullable: true)
+        ref_schema.enum = [1, 2, nil]
+        parent_schema = ApiModel::Schema.new(type: "object")
+        parent_schema.add_property("child", ref_schema)
+
+        result = OAS3::Schema.new(parent_schema, ref_tracker, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        child = result["properties"]["child"]
+
+        assert_equal [{ "$ref" => "#/components/schemas/MyEntity" }], child["allOf"]
+        assert_equal [1, 2], child["enum"]
+      end
+
+      # nullable_strategy: TYPE_ARRAY here only selects how nullability is *rendered*;
+      # the ref schema's own `type` stays scalar ("integer"), so this exercises plain
+      # string -> integer enum coercion, not array-type resolution.
+      def test_ref_string_enum_coerced_to_integer
+        ref_tracker = Set.new
+        ref_schema = ApiModel::Schema.new(canonical_name: "MyEntity", type: "integer", nullable: true)
+        ref_schema.enum = %w[1 2 3]
+        parent_schema = ApiModel::Schema.new(type: "object")
+        parent_schema.add_property("child", ref_schema)
+
+        result = OAS3::Schema.new(parent_schema, ref_tracker, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        child = result["properties"]["child"]
+
+        assert_equal [{ "$ref" => "#/components/schemas/MyEntity" }], child["allOf"]
+        assert_equal [1, 2, 3], child["enum"]
       end
 
       def test_ref_with_nullable_keyword_only_wraps_in_allof
@@ -498,6 +683,39 @@ module GrapeOAS
         assert_equal [1, 2, 3], result["enum"]
       end
 
+      def test_allof_schema_preserves_nil_in_enum_keyword_strategy
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "integer", nullable: true)
+        schema.enum = [1, 2, nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::KEYWORD).build
+
+        assert result["nullable"]
+        assert_equal [1, 2, nil], result["enum"]
+      end
+
+      def test_allof_schema_drops_nil_from_enum_extension_strategy
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "integer", nullable: true)
+        schema.enum = [1, 2, nil]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::EXTENSION).build
+
+        assert result["x-nullable"]
+        assert_equal [1, 2], result["enum"]
+      end
+
+      def test_allof_schema_normalizes_integer_enum_type_array
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "integer", nullable: true)
+        schema.enum = %w[1 2 3]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[integer null], result["type"]
+        assert_equal [1, 2, 3], result["enum"]
+      end
+
       def test_allof_schema_sanitizes_incompatible_enum
         child = ApiModel::Schema.new(type: "object")
         schema = ApiModel::Schema.new(all_of: [child], type: "boolean")
@@ -507,6 +725,61 @@ module GrapeOAS
 
         assert result.key?("allOf")
         refute result.key?("enum"), "string enum incompatible with boolean type should be dropped"
+      end
+
+      def test_oneof_schema_normalizes_integer_enum_type_array
+        variant = ApiModel::Schema.new(type: "integer")
+        schema = ApiModel::Schema.new(one_of: [variant], type: "integer", nullable: true)
+        schema.enum = %w[1 2 3]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[integer null], result["type"]
+        assert_equal [1, 2, 3], result["enum"]
+      end
+
+      def test_anyof_schema_normalizes_integer_enum_type_array
+        variant = ApiModel::Schema.new(type: "integer")
+        schema = ApiModel::Schema.new(any_of: [variant], type: "integer", nullable: true)
+        schema.enum = %w[1 2 3]
+
+        result = OAS3::Schema.new(schema, nil, nullable_strategy: Constants::NullableStrategy::TYPE_ARRAY).build
+
+        assert_equal %w[integer null], result["type"]
+        assert_equal [1, 2, 3], result["enum"]
+      end
+
+      def test_allof_schema_drops_enum_key_when_normalization_yields_nil
+        child = ApiModel::Schema.new(type: "object")
+        schema = ApiModel::Schema.new(all_of: [child], type: "string")
+        schema.enum = [nil]
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("allOf")
+        refute result.key?("enum"), "a nil-only enum on a non-nullable schema must not leak `enum: null`"
+      end
+
+      def test_oneof_schema_drops_enum_key_when_normalization_yields_nil
+        variant = ApiModel::Schema.new(type: "string")
+        schema = ApiModel::Schema.new(one_of: [variant], type: "string")
+        schema.enum = [nil]
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("oneOf")
+        refute result.key?("enum"), "a nil-only enum on a non-nullable schema must not leak `enum: null`"
+      end
+
+      def test_anyof_schema_drops_enum_key_when_normalization_yields_nil
+        variant = ApiModel::Schema.new(type: "string")
+        schema = ApiModel::Schema.new(any_of: [variant], type: "string")
+        schema.enum = [nil]
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("anyOf")
+        refute result.key?("enum"), "a nil-only enum on a non-nullable schema must not leak `enum: null`"
       end
 
       # === $ref + allOf wrapping: extensions propagation tests ===
@@ -647,6 +920,22 @@ module GrapeOAS
 
         assert_equal "#/components/schemas/MyEntity", child["$ref"]
         refute child.key?("enum"), "string enum incompatible with boolean type should be dropped"
+      end
+
+      def test_ref_drops_enum_key_when_normalization_yields_nil
+        ref_tracker = Set.new
+        ref_schema = ApiModel::Schema.new(canonical_name: "MyEntity", type: "string")
+        ref_schema.enum = [nil]
+        parent_schema = ApiModel::Schema.new(type: "object")
+        parent_schema.add_property("child", ref_schema)
+
+        result = OAS3::Schema.new(parent_schema, ref_tracker).build
+
+        child = result["properties"]["child"]
+
+        assert_equal "#/components/schemas/MyEntity", child["$ref"],
+                     "a nil-only enum on a non-nullable ref schema must not force an allOf wrapper via `enum: null`"
+        refute child.key?("enum")
       end
 
       def test_ref_without_enum_stays_plain
