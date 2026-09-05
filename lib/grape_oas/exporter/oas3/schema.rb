@@ -59,8 +59,17 @@ module GrapeOAS
         def apply_examples(schema_hash)
           return unless @schema.examples
 
-          examples = Array(@schema.examples).map { |ex| coerce_example(ex, schema_hash["type"]) }
-          schema_hash["example"] = examples.first
+          type = schema_hash["type"]
+          composite_type = [Constants::SchemaTypes::ARRAY, Constants::SchemaTypes::OBJECT].include?(base_type_for(type))
+          example = if composite_type
+                      @schema.examples
+                    else
+                      Array(@schema.examples).first
+                    end
+
+          example = example.first if !composite_type && example.is_a?(Array)
+
+          schema_hash["example"] = coerce_example(example, type)
         end
 
         def apply_extensions_and_extra_properties(schema_hash)
@@ -361,9 +370,9 @@ module GrapeOAS
 
           case base_type_for(type_val)
           when Constants::SchemaTypes::INTEGER
-            example.to_i
+            example.respond_to?(:to_i) ? example.to_i : example.to_s.to_i
           when Constants::SchemaTypes::NUMBER
-            example.to_f
+            example.respond_to?(:to_f) ? example.to_f : example.to_s.to_f
           when Constants::SchemaTypes::BOOLEAN
             example == true || example.to_s == "true"
           when Constants::SchemaTypes::STRING, nil
