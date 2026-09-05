@@ -60,7 +60,7 @@ module GrapeOAS
         end
 
         def build_examples(media_types, response_examples = nil)
-          return nil unless media_types
+          return nil if media_types.nil? || media_types.empty?
 
           mt = Array(media_types).first
           # Media type examples take precedence over response-level examples

@@ -28,6 +28,20 @@ module GrapeOAS
         assert_equal({ "X-Trace" => { "type" => "string" } }, result["200"]["headers"])
         assert_equal({ "application/json" => { foo: "bar" } }, result["200"]["examples"])
       end
+
+      def test_omits_examples_when_media_types_are_empty
+        resp = ApiModel::Response.new(
+          http_status: "204",
+          description: "No Content",
+          media_types: [],
+          examples: { "application/json" => { deleted: true } },
+        )
+
+        result = Exporter::OAS2::Response.new([resp]).build
+
+        refute result["204"].key?("schema")
+        refute result["204"].key?("examples")
+      end
     end
   end
 end

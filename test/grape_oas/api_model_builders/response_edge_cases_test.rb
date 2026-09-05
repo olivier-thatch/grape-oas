@@ -81,6 +81,211 @@ module GrapeOAS
 
         refute_nil no_content, "Should have 204 response"
         assert_equal "No Content", no_content.description
+        assert_empty no_content.media_types,
+                     "204 response must not synthesize media types (no body per HTTP semantics)"
+      end
+
+      def test_default_response_key_is_preserved
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Get item", documentation: { responses: { default: { description: "Fallback" } } }
+          get "items/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        fallback = responses.find { |r| r.http_status == "default" }
+
+        refute_nil fallback, "Should preserve the OpenAPI default response key"
+        assert_equal "Fallback", fallback.description
+      end
+
+      def test_205_reset_content_response_has_no_media_types
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Reset form",
+               success: { code: 205, message: "Reset Content", model: ResponseEdgeCasesTest::ItemEntity }
+          post "items/:id" do
+            status 205
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        reset_content = responses.find { |r| r.http_status == "205" }
+
+        refute_nil reset_content, "Should have 205 response"
+        assert_equal "Reset Content", reset_content.description
+        assert_empty reset_content.media_types,
+                     "205 response must not carry a body (RFC 9110)"
+      end
+
+      def test_204_drops_explicitly_declared_entity
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Delete item",
+               success: { code: 204, message: "No Content", model: ResponseEdgeCasesTest::ItemEntity }
+          delete "items/:id" do
+            status 204
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        no_content = responses.find { |r| r.http_status == "204" }
+
+        refute_nil no_content, "Should have 204 response"
+        assert_empty no_content.media_types,
+                     "204 must drop any declared entity (HTTP semantics: no body)"
+      end
+
+      def test_204_drops_one_of_response_schema
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Delete item",
+               success: {
+                 code: 204,
+                 message: "No Content",
+                 one_of: [
+                   { model: ResponseEdgeCasesTest::ItemEntity },
+                   { model: ResponseEdgeCasesTest::ErrorEntity }
+                 ]
+               }
+          delete "items/:id" do
+            status 204
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        no_content = responses.find { |r| r.http_status == "204" }
+
+        refute_nil no_content, "Should have 204 response"
+        assert_empty no_content.media_types,
+                     "204 must drop one_of schemas (HTTP semantics: no body)"
+      end
+
+      def test_204_drops_merged_as_response_schema
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Delete item",
+               success: {
+                 code: 204,
+                 message: "No Content",
+                 model: ResponseEdgeCasesTest::ItemEntity,
+                 as: :item
+               }
+          delete "items/:id" do
+            status 204
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        no_content = responses.find { |r| r.http_status == "204" }
+
+        refute_nil no_content, "Should have 204 response"
+        assert_empty no_content.media_types,
+                     "204 must drop merged response schemas (HTTP semantics: no body)"
+      end
+
+      def test_204_drops_response_examples
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Delete item",
+               success: { code: 204, message: "No Content", examples: { "application/json" => { "deleted" => true } } }
+          delete "items/:id" do
+            status 204
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        no_content = responses.find { |r| r.http_status == "204" }
+
+        refute_nil no_content, "Should have 204 response"
+        assert_nil no_content.examples,
+                   "Bodyless responses must drop examples (OAS2 emits them independently of media types)"
+      end
+
+      def test_304_not_modified_drops_media_types
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Conditional get",
+               success: { code: 200, model: ResponseEdgeCasesTest::ItemEntity },
+               failure: [[304, "Not Modified"]]
+          get "items/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        not_modified = responses.find { |r| r.http_status == "304" }
+
+        refute_nil not_modified, "Should have 304 response"
+        assert_empty not_modified.media_types,
+                     "304 must not carry a body (RFC 9110)"
+      end
+
+      def test_1xx_informational_drops_media_types
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Upgrade",
+               success: { code: 200, model: ResponseEdgeCasesTest::ItemEntity },
+               failure: [[101, "Switching Protocols"]]
+          get "items/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        switching = responses.find { |r| r.http_status == "101" }
+
+        refute_nil switching, "Should have 101 response"
+        assert_empty switching.media_types,
+                     "1xx must not carry a body (RFC 9110)"
+      end
+
+      def test_bodied_error_response_preserves_media_types
+        api_class = Class.new(Grape::API) do
+          format :json
+          desc "Get item",
+               success: { code: 200, model: ResponseEdgeCasesTest::ItemEntity },
+               failure: [[404, "Not Found", ResponseEdgeCasesTest::ErrorEntity]]
+          get "items/:id" do
+            {}
+          end
+        end
+
+        route = api_class.routes.first
+        builder = Response.new(api: @api, route: route)
+        responses = builder.build
+
+        not_found = responses.find { |r| r.http_status == "404" }
+
+        refute_nil not_found, "Should have 404 response"
+        refute_empty not_found.media_types,
+                     "Bodied responses must keep their media types"
       end
 
       # === Response with headers ===
