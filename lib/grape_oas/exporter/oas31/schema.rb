@@ -18,7 +18,7 @@ module GrapeOAS
           # array is one array-valued example, not many examples).
           if hash.key?("example")
             ex = hash.delete("example")
-            hash["examples"] = [ex]
+            hash["examples"] = [ex] unless hash.key?("examples")
           end
           normalize_examples!(hash)
           hash

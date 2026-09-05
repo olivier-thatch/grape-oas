@@ -57,7 +57,7 @@ module GrapeOAS
         end
 
         def apply_examples(schema_hash)
-          return unless @schema.examples
+          return if @schema.examples.nil?
 
           type = schema_hash["type"]
           schema_hash["example"] = coerce_example(@schema.examples, type)
@@ -360,11 +360,22 @@ module GrapeOAS
           return nil if example.nil?
 
           base_type = base_type_for(type_val)
-          unless [Constants::SchemaTypes::ARRAY, Constants::SchemaTypes::OBJECT].include?(base_type)
+          case base_type
+          when Constants::SchemaTypes::ARRAY
+            return example if example.is_a?(Array)
+
+            return nil
+          when Constants::SchemaTypes::OBJECT
+            return example if example.is_a?(Hash)
+
+            return nil
+          when nil
+            return example
+          else
             return nil if example.is_a?(Hash)
 
             if example.is_a?(Array)
-              return nil unless example.one?
+              return nil unless example.size == 1
 
               example = example.first
             end

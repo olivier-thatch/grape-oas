@@ -248,6 +248,40 @@ module GrapeOAS
         refute result.key?("example")
       end
 
+      def test_false_boolean_example_is_preserved
+        schema = ApiModel::Schema.new(type: "boolean", examples: false)
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("example")
+        assert_equal false, result["example"] # rubocop:disable Minitest/RefuteFalse
+      end
+
+      def test_array_schema_rejects_scalar_example
+        schema = ApiModel::Schema.new(type: "array", examples: "not-an-array")
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_object_schema_rejects_scalar_example
+        schema = ApiModel::Schema.new(type: "object", examples: "not-an-object")
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_untyped_schema_preserves_composite_example
+        example = { "items" => [1, 2] }
+        schema = ApiModel::Schema.new(type: nil, examples: example)
+
+        result = OAS3::Schema.new(schema).build
+
+        assert_equal example, result["example"]
+      end
+
       # === nullable_strategy tests ===
 
       def test_keyword_strategy_emits_nullable_true
