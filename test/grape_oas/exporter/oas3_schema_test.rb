@@ -232,6 +232,22 @@ module GrapeOAS
         assert_equal 42, result["example"]
       end
 
+      def test_uncoercible_integer_example_is_omitted
+        schema = ApiModel::Schema.new(type: "integer", examples: [:abc])
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_uncoercible_boolean_example_is_omitted
+        schema = ApiModel::Schema.new(type: "boolean", examples: ["maybe"])
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
       # === nullable_strategy tests ===
 
       def test_keyword_strategy_emits_nullable_true

@@ -104,13 +104,13 @@ module GrapeOAS
         property = entity_schema.dig("properties", "status")
 
         assert_equal "integer", property["type"], "unexpected shape for #{version}"
-        expected_example = case version
-                           when :oas2 then [1, 2]
-                           when :oas31 then [1]
-                           else 1
-                           end
-
-        assert_equal expected_example, property[version == :oas31 ? "examples" : "example"]
+        if version == :oas2
+          assert_equal [1, 2], property["example"]
+        elsif version == :oas31
+          refute property.key?("examples")
+        else
+          refute property.key?("example")
+        end
       end
     end
   end
