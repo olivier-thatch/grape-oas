@@ -396,7 +396,7 @@ module GrapeOAS
 
               nil
             end
-          when Constants::SchemaTypes::STRING, nil
+          when Constants::SchemaTypes::STRING
             example.to_s
           else
             example
