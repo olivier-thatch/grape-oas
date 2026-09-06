@@ -52,7 +52,7 @@ module GrapeOAS
 
           def apply_format_and_example(schema, doc)
             schema.format = doc[:format] if doc[:format] && schema.respond_to?(:format=)
-            schema.examples = doc[:example] if doc[:example] && schema.respond_to?(:examples=)
+            schema.examples = doc[:example] if doc.key?(:example) && schema.respond_to?(:examples=)
           end
 
           def apply_values(schema, spec)

@@ -8,6 +8,10 @@ module GrapeOAS
       format :json
 
       params do
+        optional :active, type: Grape::API::Boolean, documentation: { example: false }
+        optional :settings, type: Hash do
+          optional :enabled, type: Grape::API::Boolean, documentation: { example: false }
+        end
         requires :species,
                  type: [String],
                  documentation: { example: %w[dog cat] }
@@ -25,6 +29,29 @@ module GrapeOAS
       assert_equal "array", property["type"]
       assert_equal "string", property.dig("items", "type")
       assert_equal %w[dog cat], property["example"]
+    end
+
+    def test_false_request_examples_survive_the_grape_dsl
+      %i[oas3 oas31].each do |version|
+        schema = GrapeOAS.generate(app: SampleAPI, schema_type: version)
+        properties = schema.dig("components", "schemas", "post_animals_Request", "properties")
+        [properties.fetch("active"), properties.dig("settings", "properties", "enabled")].each do |property|
+          examples = version == :oas31 ? property.fetch("examples") : [property.fetch("example")]
+
+          assert_equal [false], examples
+        end
+      end
+    end
+
+    def test_false_entity_example_survives_the_grape_dsl
+      %i[oas3 oas31].each do |version|
+        schema = GrapeOAS.generate(app: ScalarExampleAPI, schema_type: version)
+        entity = schema.dig("components", "schemas").find { |name, _| name.end_with?("ScalarWithArrayExampleEntity") }.last
+        property = entity.dig("properties", "active")
+        examples = version == :oas31 ? property.fetch("examples") : [property.fetch("example")]
+
+        assert_equal [false], examples
+      end
     end
 
     def test_oas3_preserves_full_array_example
@@ -84,6 +111,7 @@ module GrapeOAS
     # An array example on a scalar-typed schema is malformed. It must not be
     # emitted as an array-valued example on the scalar schema.
     class ScalarWithArrayExampleEntity < Grape::Entity
+      expose :active, documentation: { type: Grape::API::Boolean, example: false }
       expose :status, documentation: { type: Integer, example: [1, 2] }
     end
 

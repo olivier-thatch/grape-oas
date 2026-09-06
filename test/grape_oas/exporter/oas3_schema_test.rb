@@ -240,6 +240,19 @@ module GrapeOAS
         refute result.key?("example")
       end
 
+      def test_zero_padded_integer_examples_are_decimal
+        decimal_examples = { "010" => 10, "08" => 8 }
+        [OAS3::Schema, OAS31::Schema].each do |exporter|
+          decimal_examples.each do |example, expected|
+            schema = ApiModel::Schema.new(type: "integer", examples: example)
+            result = exporter.new(schema).build
+            examples = exporter == OAS31::Schema ? result.fetch("examples") : [result.fetch("example")]
+
+            assert_equal [expected], examples
+          end
+        end
+      end
+
       def test_uncoercible_boolean_example_is_omitted
         schema = ApiModel::Schema.new(type: "boolean", examples: ["maybe"])
 

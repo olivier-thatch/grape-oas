@@ -404,7 +404,7 @@ module GrapeOAS
         end
 
         def coerce_integer_example(example)
-          Integer(example)
+          example.is_a?(String) ? Integer(example, 10) : Integer(example)
         rescue ArgumentError, TypeError
           nil
         end
