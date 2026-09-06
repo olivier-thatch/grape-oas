@@ -120,6 +120,51 @@ module GrapeOAS
           assert_equal entity, specs.first[:entity]
         end
 
+        def test_post_desc_entity_does_not_add_inferred_success_to_declared_codes
+          entity_class = Class.new(Grape::Entity)
+          [200, 202].each do |status|
+            api = Class.new(Grape::API) do
+              desc("create") do
+                http_codes [[status, "OK"], [404, "NF"]]
+                entity entity_class
+              end
+              post("users") { {} }
+            end
+
+            specs = @parser.parse(api.routes.first)
+
+            assert_equal [status, 404], specs.map { |spec| spec[:code] }, "declared status: #{status}"
+          end
+        end
+
+        def test_post_desc_entity_adds_inferred_success_when_only_errors_are_declared
+          route = mock_route(
+            settings: { description: { http_codes: [[404, "NF"]], entity: Class.new } },
+            request_method: "POST",
+          )
+
+          assert_equal([404, 201], @parser.parse(route).map { |spec| spec[:code] })
+        end
+
+        def test_post_desc_entity_preserves_explicit_additional_success
+          route = mock_route(
+            settings: { description: { http_codes: [[200, "OK"]], entity: { model: Class.new, code: 202 } } },
+            request_method: "POST",
+          )
+
+          assert_equal([200, 202], @parser.parse(route).map { |spec| spec[:code] })
+        end
+
+        def test_post_desc_entity_preserves_explicit_default_status
+          route = mock_route(
+            options: { default_status: 202 },
+            settings: { description: { http_codes: [[200, "OK"]], entity: Class.new } },
+            request_method: "POST",
+          )
+
+          assert_equal([200, 202], @parser.parse(route).map { |spec| spec[:code] })
+        end
+
         private
 
         def mock_route_with_desc_block(desc_data)

@@ -86,6 +86,9 @@ module GrapeOAS
         end
 
         def append_entity_spec(specs, entity_value, route)
+          explicit_code = (entity_value[:code] if entity_value.is_a?(Hash)) || route.options[:default_status]
+          return specs if !explicit_code && specs.any? { |spec| spec[:code].to_i.between?(200, 299) }
+
           entity_spec = build_entity_spec(entity_value, route)
           return specs if specs.any? { |spec| spec[:code].to_i == entity_spec[:code].to_i }
 

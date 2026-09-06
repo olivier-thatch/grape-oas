@@ -9,9 +9,9 @@ module GrapeOAS
         @api = GrapeOAS::ApiModel::API.new(title: "Test API", version: "1.0")
       end
 
-      def test_non_post_entity_hash_honors_default_status_and_bodyless_response
+      def test_entity_hash_honors_default_status_and_bodyless_response
         entity_class = Class.new(Grape::Entity)
-        %i[get put].product([202, 204]).each do |method, status|
+        %i[get put post].product([202, 204]).each do |method, status|
           api_class = Class.new(Grape::API) do
             format :json
             public_send(method, "users", entity: { model: entity_class }, default_status: status) { {} }
