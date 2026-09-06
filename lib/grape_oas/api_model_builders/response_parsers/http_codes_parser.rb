@@ -47,14 +47,14 @@ module GrapeOAS
           return [] unless data.is_a?(Hash)
 
           %i[http_codes failure success].flat_map do |key|
-            parse_value(data[key], route)
+            parse_value(data[key], route, success: key == :success)
           end
         end
 
-        def parse_value(value, route)
+        def parse_value(value, route, success:)
           return [] unless value
 
-          entries_for(value).map { |entry| normalize_entry(entry, route) }
+          entries_for(value).map { |entry| normalize_entry(entry, route, success: success) }
         end
 
         def entries_for(value)
@@ -121,24 +121,24 @@ module GrapeOAS
           end
         end
 
-        def normalize_entry(entry, route)
+        def normalize_entry(entry, route, success:)
           case entry
           when Hash
-            normalize_hash_entry(entry, route)
+            normalize_hash_entry(entry, route, success: success)
           when Array
             normalize_array_entry(entry, route)
           when Class, Module
             # Plain entity class (e.g., success TestEntity)
-            normalize_entity_entry(entry, route)
+            normalize_entity_entry(entry, route, success: success)
           else
             normalize_plain_entry(entry, route)
           end
         end
 
-        def normalize_hash_entry(entry, route)
-          default_code = default_success_code(route).to_s
+        def normalize_hash_entry(entry, route, success:)
+          default_code = success ? default_success_code(route) : (route.options[:default_status] || 200)
           {
-            code: extract_status_code(entry, default_code),
+            code: extract_status_code(entry, default_code.to_s),
             message: extract_description(entry),
             entity: extract_entity(entry, route.options[:entity]),
             headers: entry[:headers],
@@ -163,10 +163,10 @@ module GrapeOAS
           }
         end
 
-        def normalize_entity_entry(entity_class, route)
+        def normalize_entity_entry(entity_class, route, success:)
           # Plain entity class (e.g., success TestEntity)
           {
-            code: default_success_code(route),
+            code: success ? default_success_code(route) : (route.options[:default_status] || 200),
             message: nil,
             entity: entity_class,
             headers: nil,

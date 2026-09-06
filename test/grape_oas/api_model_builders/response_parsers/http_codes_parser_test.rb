@@ -337,6 +337,40 @@ module GrapeOAS
           end
         end
 
+        def test_post_failure_and_http_codes_hashes_keep_200_default
+          %i[failure http_codes].each do |key|
+            route = mock_route(key => [{ message: "Boom" }])
+            route.request_method = "POST"
+
+            assert_equal "200", @parser.parse(route).first[:code]
+          end
+        end
+
+        def test_post_failure_and_http_codes_entities_keep_200_default
+          %i[failure http_codes].each do |key|
+            route = mock_route(key => Class.new)
+            route.request_method = "POST"
+
+            assert_equal 200, @parser.parse(route).first[:code]
+          end
+        end
+
+        def test_post_failure_and_http_codes_keep_default_status_override
+          %i[failure http_codes].each do |key|
+            route = mock_route(key => [{ message: "Boom" }], :default_status => 503)
+            route.request_method = "POST"
+
+            assert_equal "503", @parser.parse(route).first[:code]
+          end
+        end
+
+        def test_post_success_without_entity_defaults_to_201
+          route = mock_route(success: { message: "Created" })
+          route.request_method = "POST"
+
+          assert_equal "201", @parser.parse(route).first[:code]
+        end
+
         private
 
         def mock_route(options = {})
