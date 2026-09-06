@@ -228,7 +228,7 @@ module GrapeOAS
           end
           schema.description = doc[:desc] if doc[:desc]
           schema.format = doc[:format] if doc[:format]
-          schema = apply_example_to_schema(schema, doc[:example]) if doc[:example] && !array_valued_example?(doc)
+          schema = apply_example_to_schema(schema, doc[:example]) if doc.key?(:example) && !array_valued_example?(doc)
           schema.additional_properties = doc[:additional_properties] if doc.key?(:additional_properties)
           schema.unevaluated_properties = doc[:unevaluated_properties] if doc.key?(:unevaluated_properties)
           defs = doc[:defs] || doc[:$defs]

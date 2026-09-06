@@ -232,6 +232,69 @@ module GrapeOAS
         assert_equal 42, result["example"]
       end
 
+      def test_uncoercible_integer_example_is_omitted
+        schema = ApiModel::Schema.new(type: "integer", examples: [:abc])
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_zero_padded_integer_examples_are_decimal
+        decimal_examples = { "010" => 10, "08" => 8 }
+        [OAS3::Schema, OAS31::Schema].each do |exporter|
+          decimal_examples.each do |example, expected|
+            schema = ApiModel::Schema.new(type: "integer", examples: example)
+            result = exporter.new(schema).build
+            examples = exporter == OAS31::Schema ? result.fetch("examples") : [result.fetch("example")]
+
+            assert_equal [expected], examples
+          end
+        end
+      end
+
+      def test_uncoercible_boolean_example_is_omitted
+        schema = ApiModel::Schema.new(type: "boolean", examples: ["maybe"])
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_false_boolean_example_is_preserved
+        schema = ApiModel::Schema.new(type: "boolean", examples: false)
+
+        result = OAS3::Schema.new(schema).build
+
+        assert result.key?("example")
+        assert_equal false, result["example"] # rubocop:disable Minitest/RefuteFalse
+      end
+
+      def test_array_schema_rejects_scalar_example
+        schema = ApiModel::Schema.new(type: "array", examples: "not-an-array")
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_object_schema_rejects_scalar_example
+        schema = ApiModel::Schema.new(type: "object", examples: "not-an-object")
+
+        result = OAS3::Schema.new(schema).build
+
+        refute result.key?("example")
+      end
+
+      def test_untyped_schema_preserves_composite_example
+        example = { "items" => [1, 2] }
+        schema = ApiModel::Schema.new(type: nil, examples: example)
+
+        result = OAS3::Schema.new(schema).build
+
+        assert_equal example, result["example"]
+      end
+
       # === nullable_strategy tests ===
 
       def test_keyword_strategy_emits_nullable_true

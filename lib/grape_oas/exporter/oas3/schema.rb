@@ -57,10 +57,10 @@ module GrapeOAS
         end
 
         def apply_examples(schema_hash)
-          return unless @schema.examples
+          return if @schema.examples.nil?
 
-          examples = Array(@schema.examples).map { |ex| coerce_example(ex, schema_hash["type"]) }
-          schema_hash["example"] = examples.first
+          type = schema_hash["type"]
+          schema_hash["example"] = coerce_example(@schema.examples, type)
         end
 
         def apply_extensions_and_extra_properties(schema_hash)
@@ -359,18 +359,60 @@ module GrapeOAS
         def coerce_example(example, type_val)
           return nil if example.nil?
 
-          case base_type_for(type_val)
+          base_type = base_type_for(type_val)
+          case base_type
+          when Constants::SchemaTypes::ARRAY
+            return example if example.is_a?(Array)
+
+            return nil
+          when Constants::SchemaTypes::OBJECT
+            return example if example.is_a?(Hash)
+
+            return nil
+          when nil
+            return example
+          else
+            return nil if example.is_a?(Hash)
+
+            if example.is_a?(Array)
+              return nil unless example.size == 1
+
+              example = example.first
+            end
+          end
+
+          case base_type
           when Constants::SchemaTypes::INTEGER
-            example.to_i
+            coerce_integer_example(example)
           when Constants::SchemaTypes::NUMBER
-            example.to_f
+            coerce_number_example(example)
           when Constants::SchemaTypes::BOOLEAN
-            example == true || example.to_s == "true"
-          when Constants::SchemaTypes::STRING, nil
+            case example
+            when true, false
+              example
+            when String
+              return true if example.casecmp("true").zero?
+              return false if example.casecmp("false").zero?
+
+              nil
+            end
+          when Constants::SchemaTypes::STRING
             example.to_s
           else
             example
           end
+        end
+
+        def coerce_integer_example(example)
+          example.is_a?(String) ? Integer(example, 10) : Integer(example)
+        rescue ArgumentError, TypeError
+          nil
+        end
+
+        def coerce_number_example(example)
+          Float(example)
+        rescue ArgumentError, TypeError
+          nil
         end
       end
     end

@@ -98,6 +98,18 @@ module GrapeOAS
         )
       end
 
+      def test_existing_examples_extension_is_not_overwritten
+        schema = ApiModel::Schema.new(
+          type: "string",
+          examples: "schema example",
+          extensions: { "examples" => ["extension example"] },
+        )
+
+        result = OAS31::Schema.new(schema).build
+
+        assert_equal ["extension example"], result["examples"]
+      end
+
       def test_file_typed_property_gets_content_keywords
         file_prop = ApiModel::Schema.new(type: "file")
         object = ApiModel::Schema.new(type: "object")
