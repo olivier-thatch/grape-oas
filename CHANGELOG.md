@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- [#72](https://github.com/numbata/grape-oas/pull/72): Infer 201 for POST entity responses without an explicit status code - [@olivier-thatch](https://github.com/olivier-thatch).
+
 - [#100](https://github.com/numbata/grape-oas/pull/100): Preserve nil enum members when the selected nullable strategy can express them - [@numbata](https://github.com/numbata).
 - [#104](https://github.com/numbata/grape-oas/pull/104): Preserve array-valued schema examples and Boolean false examples from parameter/entity documentation in OAS 3.0/3.1; omit incompatible scalar examples - [@olivier-thatch](https://github.com/olivier-thatch).
 - [#97](https://github.com/numbata/grape-oas/pull/97): Default OAS 2.0 nullable strategy to EXTENSION so nullable fields emit `x-nullable: true` without explicit opt-in - [@numbata](https://github.com/numbata).
@@ -50,8 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [#61](https://github.com/numbata/grape-oas/pull/61): Respect `entity_name` on `grape::entity` subclasses - [@olivier-thatch](https://github.com/olivier-thatch).
 - [#68](https://github.com/numbata/grape-oas/pull/68): De-duplicate parameter `description` between the Parameter Object and its nested `schema` in OAS 3 output - [@olivier-thatch](https://github.com/olivier-thatch).
 - [#70](https://github.com/numbata/grape-oas/pull/70): Propagate schema attributes (`default`, `enum`, constraints, extensions) through `$ref` and composition paths - [@numbata](https://github.com/numbata).
-- [#72](https://github.com/numbata/grape-oas/pull/72): Default POST success responses to 201 - [@olivier-thatch](https://github.com/olivier-thatch).
-- Your contribution here
 
 ### Changed
 

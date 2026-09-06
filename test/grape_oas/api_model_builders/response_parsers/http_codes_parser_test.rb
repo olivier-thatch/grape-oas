@@ -282,6 +282,61 @@ module GrapeOAS
           assert_equal 201, specs[0][:code]
         end
 
+        def test_success_hash_without_code_defaults_to_201_for_post
+          entity = Class.new
+          route = mock_route(success: { model: entity })
+          route.request_method = "POST"
+
+          spec = @parser.parse(route).first
+
+          assert_equal "201", spec[:code]
+          assert_equal entity, spec[:entity]
+        end
+
+        def test_default_status_overrides_post_success_inference
+          entity = Class.new
+          [entity, { model: entity }].each do |success|
+            route = mock_route(success: success, default_status: 202)
+            route.request_method = "POST"
+
+            spec = @parser.parse(route).first
+
+            assert_equal "202", spec[:code].to_s
+            assert_equal entity, spec[:entity]
+          end
+        end
+
+        def test_explicit_success_code_overrides_default_status_for_post
+          route = mock_route(success: { code: 200, model: Class.new }, default_status: 202)
+          route.request_method = "POST"
+
+          assert_equal 200, @parser.parse(route).first[:code]
+        end
+
+        def test_entity_hash_without_code_defaults_to_201_for_post
+          entity = Class.new
+          route = mock_route(entity: { model: entity })
+          route.request_method = "POST"
+
+          spec = @parser.parse(route).first
+
+          assert_equal 201, spec[:code]
+          assert_equal entity, spec[:entity]
+        end
+
+        def test_default_status_overrides_appended_post_entity_inference
+          entity = Class.new
+          [entity, { model: entity }].each do |response_entity|
+            route = mock_route(entity: response_entity, default_status: 202)
+            route.request_method = "POST"
+
+            spec = @parser.parse(route).first
+
+            assert_equal 202, spec[:code]
+            assert_equal entity, spec[:entity]
+          end
+        end
+
         private
 
         def mock_route(options = {})

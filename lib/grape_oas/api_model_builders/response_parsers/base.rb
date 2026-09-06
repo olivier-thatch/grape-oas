@@ -51,9 +51,6 @@ module GrapeOAS
           hash.transform_keys { |k| k.is_a?(String) ? k.to_sym : k }
         end
 
-        # Default success status code for a route when none is explicitly provided.
-        # POST routes default to 201; all other methods default to 200.
-        # Honors an explicit `default_status:` route option.
         def default_success_code(route)
           return route.options[:default_status] if route.options[:default_status]
 
