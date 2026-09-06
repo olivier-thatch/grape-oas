@@ -51,10 +51,10 @@ module GrapeOAS
           hash.transform_keys { |k| k.is_a?(String) ? k.to_sym : k }
         end
 
-        def default_success_code(route)
+        def default_response_code(route, success:)
           return route.options[:default_status] if route.options[:default_status]
 
-          route.request_method.to_s.upcase == "POST" ? 201 : 200
+          success && route.request_method.to_s.upcase == "POST" ? 201 : 200
         end
       end
     end

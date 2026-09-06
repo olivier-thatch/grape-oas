@@ -295,14 +295,14 @@ module GrapeOAS
 
         def test_default_status_overrides_post_success_inference
           entity = Class.new
-          [entity, { model: entity }].each do |success|
+          [[entity, 202], [{ model: entity }, "202"]].each do |success, expected_code|
             route = mock_route(success: success, default_status: 202)
             route.request_method = "POST"
 
             spec = @parser.parse(route).first
 
-            assert_equal "202", spec[:code].to_s
-            assert_equal entity, spec[:entity]
+            assert_equal expected_code, spec[:code], "success: #{success.inspect}"
+            assert_equal entity, spec[:entity], "success: #{success.inspect}"
           end
         end
 
@@ -332,8 +332,8 @@ module GrapeOAS
 
             spec = @parser.parse(route).first
 
-            assert_equal 202, spec[:code]
-            assert_equal entity, spec[:entity]
+            assert_equal 202, spec[:code], "entity: #{response_entity.inspect}"
+            assert_equal entity, spec[:entity], "entity: #{response_entity.inspect}"
           end
         end
 
@@ -342,7 +342,7 @@ module GrapeOAS
             route = mock_route(key => [{ message: "Boom" }])
             route.request_method = "POST"
 
-            assert_equal "200", @parser.parse(route).first[:code]
+            assert_equal "200", @parser.parse(route).first[:code], key.to_s
           end
         end
 
@@ -351,7 +351,7 @@ module GrapeOAS
             route = mock_route(key => Class.new)
             route.request_method = "POST"
 
-            assert_equal 200, @parser.parse(route).first[:code]
+            assert_equal 200, @parser.parse(route).first[:code], key.to_s
           end
         end
 
@@ -360,7 +360,7 @@ module GrapeOAS
             route = mock_route(key => [{ message: "Boom" }], :default_status => 503)
             route.request_method = "POST"
 
-            assert_equal "503", @parser.parse(route).first[:code]
+            assert_equal "503", @parser.parse(route).first[:code], key.to_s
           end
         end
 

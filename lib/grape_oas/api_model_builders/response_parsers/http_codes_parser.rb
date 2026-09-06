@@ -96,7 +96,7 @@ module GrapeOAS
           if entity_value.is_a?(Hash)
             # Hash format: { code: 201, model: Entity, message: "Created" }
             {
-              code: entity_value[:code] || default_success_code(route),
+              code: entity_value[:code] || default_response_code(route, success: true),
               message: entity_value[:message],
               entity: extract_entity(entity_value, nil),
               headers: entity_value[:headers],
@@ -109,7 +109,7 @@ module GrapeOAS
           else
             # Plain entity class
             {
-              code: default_success_code(route),
+              code: default_response_code(route, success: true),
               message: nil,
               entity: entity_value,
               headers: nil,
@@ -136,7 +136,7 @@ module GrapeOAS
         end
 
         def normalize_hash_entry(entry, route, success:)
-          default_code = success ? default_success_code(route) : (route.options[:default_status] || 200)
+          default_code = default_response_code(route, success: success)
           {
             code: extract_status_code(entry, default_code.to_s),
             message: extract_description(entry),
@@ -166,7 +166,7 @@ module GrapeOAS
         def normalize_entity_entry(entity_class, route, success:)
           # Plain entity class (e.g., success TestEntity)
           {
-            code: success ? default_success_code(route) : (route.options[:default_status] || 200),
+            code: default_response_code(route, success: success),
             message: nil,
             entity: entity_class,
             headers: nil,

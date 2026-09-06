@@ -16,7 +16,7 @@ module GrapeOAS
 
         def parse(route)
           [{
-            code: default_success_code(route).to_s,
+            code: default_response_code(route, success: true).to_s,
             message: "Success",
             entity: route.options[:entity],
             headers: nil
